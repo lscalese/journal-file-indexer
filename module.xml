@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Export generator="Cache" version="25">
-  <Document name="dc-sample.ZPM">
+  <Document name="journal-indexer.ZPM">
     <Module>
-      <Name>dc-sample</Name>
-      <Version>1.0.27</Version>
-      <Description>Basic InterSystems IRIS Development Template</Description>
+      <Name>journal-indexer</Name>
+      <Version>0.0.1</Version>
+      <Description></Description>
       <Packaging>module</Packaging>
       <SourcesRoot>src</SourcesRoot>
-      <Resource Name="dc.sample.PKG"/>
-      <UnitTest Name="/tests" Package="dc.sample.unittests" Phase="test"/>
-
+      <Resource Name="dc.journalindexer.PKG"/>
+      <!--<UnitTest Name="/tests" Package="dc.sample.unittests" Phase="test"/>-->
     </Module>
   </Document>
 </Export>
