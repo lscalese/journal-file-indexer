@@ -24,7 +24,6 @@ ClassMethod SetFile(
 
 /// Set a journal entry into the database<br/>
 /// FileId is the idenfier of the related journal file in dc.journalindexer.data.File <br/>
-/// If FastMode is true data will be inserted using global access instead of object access.<br/>
 /// It improves the performance but need to rebuild indices.<br/>
 ClassMethod SetRecord(
 	Record As %SYS.Journal.Record,
@@ -87,13 +86,56 @@ BitSetProperties
     Quit
 }
 
+/// This is the same of "SetRecord" but data are stored in the buffer array %zinstance<br/>.
+/// You need to use the FlushBuffer() method to store datta in database and then<br/>
+/// rebuild indices with RebuildIndices(firstId, lastId).<br/>
+/// 
+ClassMethod SetRecordInBuffer(
+	Record As %SYS.Journal.Record,
+	FileId As %Integer,
+	Output RecordId As %Integer) As %Status
+{
+    Set RecordId = $Sequence(^IRIS.Temp.data.RecordD)
+
+    Set class = ""
+
+    If $Classname(Record) = "%SYS.Journal.SetKillRecord" {
+        Do SetKillProperties
+        Set class = "~dc.journalindexer.data.SetKillRecord~"
+    } ElseIf $Classname(Record) = "%SYS.Journal.BitSetRecord" {
+        Do BitSetProperties
+        Set class = "~dc.journalindexer.data.SetKillRecord~dc.journalindexer.data.BitSetRecord~"
+    }
+
+    Set %zinstance(RecordId) = $ListBuild(class,Record.Address,Record.Type,Record.PrevAddress,Record.NextAddress,Record.TimeStamp,Record.InTransaction,Record.ProcessID,Record.JobID,Record.RemoteSystemID,Record.ECPSystemID,+FileId)
+    
+    Quit $$$OK
+
+SetKillProperties
+    Set %zinstance(RecordId, "SetKillRecord") = $ListBuild(Record.ClusterSequence,Record.DatabaseName,Record.MirrorDatabaseName,Record.GlobalReference,Record.GlobalNode,Record.NumberOfValues,Record.NewValue,Record.OldValue,Record.Collation,$QSubScript(Record.GlobalNode,0))
+    Quit
+
+BitSetProperties
+    Do SetKillProperties
+    Set %zinstance(RecordId, "BitSetRecord") = $ListBuild(Record.Position,Record.OldLength)
+    Quit
+}
+
+ClassMethod FlushBuffer() As %Status
+{
+    Quit:'$Data(%zinstance)
+    Merge ^IRIS.Temp.data.RecordD = %zinstance
+    Kill %zinstance
+    Quit $$$OK
+}
+
 ClassMethod RebuildIndices(
 	startId As %Integer,
 	lastId As %Integer) As %Status
 {
-    Set sc = ##class(dc.journalindexer.data.Record).%BuildIndices(, 1, 0, 0, startId, lastId),
-        sc = $$$ADDSC(sc,##class(dc.journalindexer.data.Record).%BuildIndices(, 1, 0, 0, startId, lastId)),
-        sc = $$$ADDSC(sc,##class(dc.journalindexer.data.Record).%BuildIndices(, 1, 0, 0, startId, lastId))
+    Set sc = ##class(dc.journalindexer.data.Record).%BuildIndices($ListBuild("$Record","FileI", "ProcessID", "TimeStampI", "AdressI"), 1, 0, 0, startId, lastId),
+        sc = $$$ADDSC(sc,##class(dc.journalindexer.data.SetKillRecord).%BuildIndices($ListBuild("$SetKillRecord","GlobalNameI"), 1, 0, 0, startId, lastId)),
+        sc = $$$ADDSC(sc,##class(dc.journalindexer.data.BitSetRecord).%BuildIndices($ListBuild("$BitSetRecord"), 1, 0, 0, startId, lastId))
 
     Quit sc
 }
