@@ -131,6 +131,7 @@ ClassMethod Index(
         
         Do:Notify'="" $SYSTEM.Event.Signal(Notify, msg.%ToJSON())
 
+        ; if $ZStorage is less than 1Gb, we flush when 80% of the process memory is reached.
         ; if $ZStorage is greather than 1Gb, we force the limit before flush to 800Mb
         Set limitBeforeFlush = $Select($zstorage > 1073741824: 1024**4, 1: $zstorage*1024) * .2
 

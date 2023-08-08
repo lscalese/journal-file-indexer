@@ -22,6 +22,7 @@ ClassMethod SetFile(
     Return sc
 }
 
+/// ---- METHOD REPLACED BY SetRecordInBuffer FOR FAST INSERT ----<br/>
 /// Set a journal entry into the database<br/>
 /// FileId is the idenfier of the related journal file in dc.journalindexer.data.File <br/>
 /// It improves the performance but need to rebuild indices.<br/>
@@ -87,7 +88,7 @@ BitSetProperties
 }
 
 /// This is the same of "SetRecord" but data are stored in the buffer array %zinstance<br/>.
-/// You need to use the FlushBuffer() method to store datta in database and then<br/>
+/// You need to use the FlushBuffer() method to store data in database and then<br/>
 /// rebuild indices with RebuildIndices(firstId, lastId).<br/>
 /// 
 ClassMethod SetRecordInBuffer(
