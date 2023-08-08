@@ -3,9 +3,11 @@ Class dc.journalindexer.services.Indexer
 
 Parameter STEPSIGNAL = 10000;
 
+Parameter SRCNAME = "idx";
+
 ClassMethod RunIndex() As %Status
 {
-    Set resourceName = "idx", list=""
+    Set resourceName = ..#SRCNAME, list=""
     Do $SYSTEM.Event.Delete(resourceName)
 
     Set sc = $$$OK
@@ -100,7 +102,6 @@ ClassMethod Index(
     Set sc = $$$OK
 
     If '##class(%File).Exists(JournalFile) Set JournalFile = JournalFile _ "z" Quit:'##class(%File).Exists(JournalFile) $$$ERROR($$$GeneralError, "File does not exist.")
-    
     If '##class(%SYS.Journal.File).IsValidJournal(JournalFile) Quit $$$ERROR($$$GeneralError, "Is not a valid journal file.")
 
     Lock +^dc.journalindexer.services.Indexer:2 ; Only one index process at a time
@@ -113,7 +114,6 @@ ClassMethod Index(
 
     Try {
         
-        s s = $zh
         Set journal = ##class(%SYS.Journal.File).%OpenId(JournalFile, , .sc) Quit:$$$ISERR(sc)
         
         Set sc = ##class(dc.journalindexer.dao.JournalDataDAO).SetFile(journal, Name, .jrnId) Quit:$$$ISERR(sc)

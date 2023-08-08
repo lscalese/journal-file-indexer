@@ -123,7 +123,7 @@ BitSetProperties
 
 ClassMethod FlushBuffer() As %Status
 {
-    Quit:'$Data(%zinstance)
+    Quit:'$Data(%zinstance) $$$OK
     Merge ^IRIS.Temp.data.RecordD = %zinstance
     Kill %zinstance
     Quit $$$OK
