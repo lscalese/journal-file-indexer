@@ -11,7 +11,7 @@ ClassMethod RunIndex() As %Status
     Do $SYSTEM.Event.Delete(resourceName)
 
     Set sc = $$$OK
-    ; "/usr/irissys/mgr/journal/20230805.004z"
+    
     For  {
         Write !,"Journal file path (? help, q quit): " Read JournalFile
 
@@ -91,12 +91,12 @@ ShowHelp
 
 /// Open a journal file and index its content in database.
 ClassMethod Index(
-	JournalFile As %String = "/usr/irissys/mgr/journal/20230805.004z",
+	JournalFile As %String,
 	Name As %String = {##class(%File).GetFilename(JournalFile)},
-	Notify As %String = "") As %Status
+	Notify As %String = "",
+	Output FileId As %Integer = "") As %Status
 {
     #dim journal As %SYS.Journal.File
-    #dim jrnId As %Integer
     #dim jrnRecord As %SYS.Journal.Record
 
     Set sc = $$$OK
@@ -116,7 +116,7 @@ ClassMethod Index(
         
         Set journal = ##class(%SYS.Journal.File).%OpenId(JournalFile, , .sc) Quit:$$$ISERR(sc)
         
-        Set sc = ##class(dc.journalindexer.dao.JournalDataDAO).SetFile(journal, Name, .jrnId) Quit:$$$ISERR(sc)
+        Set sc = ##class(dc.journalindexer.dao.JournalDataDAO).SetFile(journal, Name, .FileId) Quit:$$$ISERR(sc)
 
         Set jrnRecord = journal.FirstRecord
 
@@ -138,7 +138,7 @@ ClassMethod Index(
 
         While $IsObject(jrnRecord) {
             
-            Do ##class(dc.journalindexer.dao.JournalDataDAO).SetRecordInBuffer(jrnRecord, .jrnId, .lastRecordId)
+            Do ##class(dc.journalindexer.dao.JournalDataDAO).SetRecordInBuffer(jrnRecord, .FileId, .lastRecordId)
             
             ; we use the process memory until 80% before flush the buffer
             If $Storage < limitBeforeFlush Do ##class(dc.journalindexer.dao.JournalDataDAO).FlushBuffer()
@@ -252,7 +252,7 @@ ClassMethod RestoreJournalState(
 	transactionMode As %Integer = 1,
 	autoCommitMode As %Integer = 1) [ Internal, Private ]
 {
-    Do DISABLE^%NOJRN,
+    Do ENABLE^%NOJRN,
         $SYSTEM.OBJ.SetTransactionMode(transactionMode),
         ##class(%SYSTEM.SQL.Util).SetOption("AutoCommit", autoCommitMode)
     Quit

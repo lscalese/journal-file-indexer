@@ -1,3 +1,0 @@
-Class dc.journalindexer.test
-{
-}
