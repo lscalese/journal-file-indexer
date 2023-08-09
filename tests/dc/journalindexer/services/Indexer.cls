@@ -6,14 +6,21 @@ Parameter NSETKILL = 10000;
 Method OnBeforeAllTests() As %Status
 {
     Set sc = $$$OK
+    Do $SYSTEM.Process.SynchCommit(1)
+    
     $$$QuitOnError(..GenerateJournalFile(.JournalFile))
     Set %ztests("JournalFile") = JournalFile
+    
     Quit sc
 }
 
 Method OnAfterAllTests() As %Status
 {
+
+    Do $SYSTEM.Process.SynchCommit(0)
+    
     Kill %ztests("JournalFile")
+    Kill ^dc.journalindexer.testD
     Quit $$$OK
 }
 
@@ -26,7 +33,7 @@ Method Test01IndexFile() As %Status
     Do $$$AssertStatusOK(sc, "Insert journal in database using Index method")
 
     Set n = ..#NSETKILL
-    Do ..LogMessage($$$FormatText("Journal must contains %1 SET and %2 KILL", n, n+1))
+    Do ..LogMessage($$$FormatText("Journal must contains %1 SET and %2 KILL", n, n))
 
     Set query = "SELECT COUNT(*) As cpt FROM dc_journalindexer_data.SetKillRecord where file = ? and globalname = ? and typeName = ? "
 
@@ -37,8 +44,8 @@ Method Test01IndexFile() As %Status
         Kill tResult, statement
     }
 
-    Do $$$AssertEquals($Get(arr("SET")), n, "Number of SET OK" )
-    Do $$$AssertEquals($Get(arr("KILL")), n+1, "Number of KILL OK" )
+    Do $$$AssertEquals($Get(arr("SET")), n, $$$FormatText("Number of SET OK (found:%1, expected:%2)",$Get(arr("SET")), n) )
+    Do $$$AssertEquals($Get(arr("KILL")), n, $$$FormatText("Number of KILL OK (found:%1, expected:%2)",$Get(arr("KILL")), n) )
 
     Quit sc
 }
@@ -116,14 +123,10 @@ ClassMethod GenerateJournalFile(Output JournalFile As %String) As %Status
     Set sc = $$$OK
     
     $$$QuitOnError(##class(%SYS.Journal.System).RollToNextFile(1, .JournalFile))
-
-    Set commitState = $SYSTEM.Process.SynchCommit(1)
-
-    Kill ^dc.journalindexer.testD
-
+    
     Set n = ..#NSETKILL
     For i=1:1:n {
-        Set data = $ListBuild(##class(%PopulateUtils).LastName(), 
+        Set data(i) = $ListBuild(##class(%PopulateUtils).LastName(), 
                         ##class(%PopulateUtils).FirstName(), 
                         ##class(%PopulateUtils).Street(),
                         ##class(%PopulateUtils).City(),
@@ -131,16 +134,16 @@ ClassMethod GenerateJournalFile(Output JournalFile As %String) As %Status
                         ##class(%PopulateUtils).USState(),
                         ##class(%PopulateUtils).SSN(),
                         $Random(1000))
-        
-        Set ^dc.journalindexer.testD(i) = data
     }
+    
+    TSTART
+    Merge ^dc.journalindexer.testD = data
+    TCOMMIT
 
-    For i=1:1:n/2 Kill ^dc.journalindexer.testD(i)
-
-    For i=n/2+1:1:n TSTART  Kill ^dc.journalindexer.testD(i)  TCOMMIT
-
-    Do $SYSTEM.Process.SynchCommit(commitState)
-
+    TSTART
+    For i=1:1:n Kill ^dc.journalindexer.testD(i)
+    TCOMMIT
+    
     Do ##class(%SYS.Journal.System).RollToNextFile(1)
 
     Quit sc
