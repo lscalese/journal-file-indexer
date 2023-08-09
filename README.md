@@ -23,7 +23,7 @@ This version include :
 * Process to read a journal file and store its content in database.  
 * Unit tests of indexer process.  
 
-It does not include yet efficient index to have a fast response time for searching by "value". This feature will be added in version 0.2.0 (may be with a functionnal index or iFind index, to analysis...).  
+It does not yet include efficient index to have a fast response time for searching by "value". This feature will be added in version 0.2.0 (may be with a functionnal index or iFind index, to analysis...).  
 
 ## Installation
 
