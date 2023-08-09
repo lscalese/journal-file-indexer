@@ -1,6 +1,8 @@
 Class tests.dc.journalindexer.services.Indexer Extends %UnitTest.TestCase
 {
 
+Parameter NSETKILL = 10000;
+
 Method OnBeforeAllTests() As %Status
 {
     Set sc = $$$OK
@@ -22,6 +24,21 @@ Method Test01IndexFile() As %Status
     Set:$$$ISOK(sc) %ztests("FileId", FileId) = $lb(FileId, %ztests("JournalFile"))
 
     Do $$$AssertStatusOK(sc, "Insert journal in database using Index method")
+
+    Set n = ..#NSETKILL
+    Do ..LogMessage($$$FormatText("Journal must contains %1 SET and %2 KILL", n, n+1))
+
+    Set query = "SELECT COUNT(*) As cpt FROM dc_journalindexer_data.SetKillRecord where file = ? and globalname = ? and typeName = ? "
+
+    For typeName = "SET", "KILL" {
+        Set tResult = ##class(%SQL.Statement).%ExecDirect(.statement, query, FileId, "^dc.journalindexer.testD", typeName)
+        Do tResult.%Next()
+        Set arr(typeName) = tResult.%Get("cpt")
+        Kill tResult, statement
+    }
+
+    Do $$$AssertEquals($Get(arr("SET")), n, "Number of SET OK" )
+    Do $$$AssertEquals($Get(arr("KILL")), n+1, "Number of KILL OK" )
 
     Quit sc
 }
@@ -98,11 +115,13 @@ ClassMethod GenerateJournalFile(Output JournalFile As %String) As %Status
 {
     Set sc = $$$OK
     
-    Kill ^dc.journalindexer.testD
-
     $$$QuitOnError(##class(%SYS.Journal.System).RollToNextFile(1, .JournalFile))
 
-    Set n = 10000
+    Set commitState = $SYSTEM.Process.SynchCommit(1)
+
+    Kill ^dc.journalindexer.testD
+
+    Set n = ..#NSETKILL
     For i=1:1:n {
         Set data = $ListBuild(##class(%PopulateUtils).LastName(), 
                         ##class(%PopulateUtils).FirstName(), 
@@ -120,6 +139,7 @@ ClassMethod GenerateJournalFile(Output JournalFile As %String) As %Status
 
     For i=n/2+1:1:n TSTART  Kill ^dc.journalindexer.testD(i)  TCOMMIT
 
+    Do $SYSTEM.Process.SynchCommit(commitState)
 
     Do ##class(%SYS.Journal.System).RollToNextFile(1)
 
