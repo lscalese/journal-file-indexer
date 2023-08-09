@@ -96,7 +96,7 @@ ClassMethod SetRecordInBuffer(
 	FileId As %Integer,
 	Output RecordId As %Integer) As %Status
 {
-    Set RecordId = $Sequence(^IRIS.Temp.data.RecordD)
+    Set RecordId = $Increment(^IRIS.Temp.data.RecordD)
 
     Set class = ""
 
