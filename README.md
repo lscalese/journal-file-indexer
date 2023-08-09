@@ -79,8 +79,6 @@ Delete old journal ...
 OK
 ```
 
-Now data are available in `dc_journalindexer_data` schema.
-
 **Note:** *If journal file are zipped either `/usr/irissys/mgr/journal/20230805.004` or `/usr/irissys/mgr/journal/20230805.004z` work as well. No matter about the suffix `z`.*  
 
 
@@ -93,6 +91,21 @@ Set sc = ##class(dc.journalindexer.services.Indexer).Index("/usr/irissys/mgr/jou
 The first argument is the path of the journal file to store in database.  
 The second is optional, this is the name of the journal file (by default: `##class(%File).GetFilename(JournalFile)`).  
 The third is also optional, this is the ressource name if you would like to wake up process with `$SYSTEM.Event`. It's used by `RunIndex` to show the progression.  See the [official documentation](https://docs.intersystems.com/latest/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&PRIVATE=1&CLASSNAME=%25SYSTEM.Event) for more information about `$SYSTEM.Event`.  
+
+### View data
+
+#### SQL
+
+Data are available in `dc_journalindexer_data` schema.  
+You can view data using query like:
+
+```SQL
+SELECT * FROM dc_journalindexer_data.Record
+SELECT * FROM dc_journalindexer_data.SetKillRecord
+SELECT * FROM dc_journalindexer_data.BitSetRecord
+```
+
+**Note:** *Currently there is no efficient index to search on `NewValue` or `OldValue` properties.  It's planned to the version 0.2.0.*
 
 ## About Unit Tests
 
