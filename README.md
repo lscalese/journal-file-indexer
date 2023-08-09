@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat&logo=AdGuard)](LICENSE)
 # IRIS Journal file indexer
 
-**Important : *It is not ready to use. This package is currently on OEX only to facilitate iterative reviews during development. Consider that it will be ready only from version 1.0.0.***
+**Important : *It is not ready to use. This package is currently on OEX only to facilitate iterative reviews during development. Consider it will be ready only from version 1.0.0.***
 
 ## Description
 
@@ -22,6 +22,8 @@ This version include :
 * Tables to store journal file data into the IRISTEMP database.  
 * Process to read a journal file and store its content in database.  
 * Unit tests of indexer process.  
+
+It does not include yet efficient index to have a fast response time for searching by "value". This feature will be added in version 0.2.0 (may be with a functionnal index or iFind index, to analysis...).  
 
 ## Installation
 
@@ -77,8 +79,10 @@ Delete old journal ...
 OK
 ```
 
-**Note:** If journal file are zipped either `/usr/irissys/mgr/journal/20230805.004` or `/usr/irissys/mgr/journal/20230805.004z` work as well. No matter about the suffix `z`.  
-*Unit Tests include also a test of this interactive menu using `Job ##class(dc.journalindexer.services.Indexer).RunIndex():(::input:output)`.*  
+Now data are available in `dc_journalindexer_data` schema.
+
+**Note:** *If journal file are zipped either `/usr/irissys/mgr/journal/20230805.004` or `/usr/irissys/mgr/journal/20230805.004z` work as well. No matter about the suffix `z`.*  
+
 
 #### Programmatically
 
@@ -90,3 +94,15 @@ The first argument is the path of the journal file to store in database.
 The second is optional, this is the name of the journal file (by default: `##class(%File).GetFilename(JournalFile)`).  
 The third is also optional, this is the ressource name if you would like to wake up process with `$SYSTEM.Event`. It's used by `RunIndex` to show the progression.  See the [official documentation](https://docs.intersystems.com/latest/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&PRIVATE=1&CLASSNAME=%25SYSTEM.Event) for more information about `$SYSTEM.Event`.  
 
+## About Unit Tests
+
+### Indexer Process
+
+The unit tests cover the `Index`, `DeleteJournal` methods.  
+A journal file is generated with 10000 SET and 10001 KILL on the global `^dc.journalindexer.testD`.  
+
+The interactive menu (method `RunIndex`) is also covered using Job, input\output files and `$SYSTEM.Event` utils (syntax `Job classmethod:(::inputFile:outputFile)` )
+
+```
+zpm "test journal-indexer"
+```
