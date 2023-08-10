@@ -92,6 +92,19 @@ The first argument is the path of the journal file to store in database.
 The second is optional, this is the name of the journal file (by default: `##class(%File).GetFilename(JournalFile)`).  
 The third is also optional, this is the ressource name if you would like to wake up process with `$SYSTEM.Event`. It's used by `RunIndex` to show the progression.  See the [official documentation](https://docs.intersystems.com/latest/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&PRIVATE=1&CLASSNAME=%25SYSTEM.Event) for more information about `$SYSTEM.Event`.  
 
+#### About the storage
+
+We consider these data are temporary.  
+The usual use case is to index a journal file, perform searches and then delete them.  
+So, all data are physically stored in IRISTEMP to avoid indexing a journal file generate a new journal file ...
+By default, the process keep maximum 5 indexed journal files.  
+If 6th is indexed the oldest is automatically removed from the database.  
+
+Yon can increase or decrease this value with this config :
+```
+Do ##class(dc.journalindexer.services.Config).SetConfig("MaxJournalRetention", 5)
+```
+
 ### View data
 
 #### SQL
