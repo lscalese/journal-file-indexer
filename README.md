@@ -26,7 +26,7 @@ This version include :
 It does not yet include efficient index to have a fast response time for searching by "value". This feature will be added in version 0.2.0 (may be with a functionnal index or iFind index, to analysis...).  
 
 ## Installation
-
+  
 ```
 zpm "install journal-indexer"
 ```
@@ -51,7 +51,7 @@ zpm "test journal-indexer"
 
 #### Using a wizard in the terminal
   
-```Objectscript
+```
 Do ##class(dc.journalindexer.services.Indexer).RunIndex()
 
 Journal file path (? help, q quit): ?
