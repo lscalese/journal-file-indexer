@@ -27,13 +27,13 @@ It does not yet include efficient index to have a fast response time for searchi
 
 ## Installation
   
-```
+```objectscript
 zpm "install journal-indexer"
 ```
 
 Or using docker:
   
-```
+```bash
 git clone https://github.com/lscalese/journal-file-indexer.git
 cd journal-file-indexer
 docker-compose up -d
@@ -41,7 +41,7 @@ docker-compose up -d
 
 ## Run Unit Tests
   
-```
+```objectscript
 zpm "test journal-indexer"
 ```
 
@@ -51,7 +51,7 @@ zpm "test journal-indexer"
 
 #### Using a wizard in the terminal
   
-```
+```objectscript
 Do ##class(dc.journalindexer.services.Indexer).RunIndex()
 
 Journal file path (? help, q quit): ?
@@ -59,7 +59,7 @@ Journal file path (? help, q quit): ?
 
 Type the path of a journal file or `?` to show list of journal files on this system:
   
-```
+```bash
 Journal file path (? help, q quit): ?
   1) /usr/irissys/mgr/journal/20230805.003
   2) /usr/irissys/mgr/journal/20230805.004
@@ -71,7 +71,7 @@ Journal file path (? help, q quit):
   
 Then type a path or just a number related to a journal file, typing `2` is similar to `/usr/irissys/mgr/journal/20230805.004`:
   
-```
+```bash
 Journal file path (? help, q quit): 2
 Start read journal    17087424 / 17087424  
 FlushBuffer...
@@ -85,7 +85,7 @@ OK
 
 #### Programmatically
   
-```
+```objectscript
 Set sc = ##class(dc.journalindexer.services.Indexer).Index("/usr/irissys/mgr/journal/20230805.004", "20230805.004", "")
 ```
 
@@ -103,7 +103,7 @@ If 6th is indexed the oldest is automatically removed from the database.
 
 Yon can increase or decrease this value with this config :  
   
-```
+```objectscript
 Do ##class(dc.journalindexer.services.Config).SetConfig("MaxJournalRetention", 5)
 ```
 
@@ -131,6 +131,6 @@ A journal file is generated with 10000 SET and 10001 KILL on the global `^dc.jou
 
 The interactive menu (method `RunIndex`) is also covered using Job, input\output files and `$SYSTEM.Event` utils (syntax `Job classmethod:(::inputFile:outputFile)` )
   
-```
+```objectscript
 zpm "test journal-indexer"
 ```
