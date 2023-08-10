@@ -49,12 +49,10 @@ zpm "test journal-indexer"
 
 ### Store data from a journal file in database
 
-### Using a wizard in the terminal
+#### Using a wizard in the terminal  
   
 ```objectscript
 Do ##class(dc.journalindexer.services.Indexer).RunIndex()
-
-Journal file path (? help, q quit): ?
 ```
 
 Type the path of a journal file or `?` to show list of journal files on this system:
