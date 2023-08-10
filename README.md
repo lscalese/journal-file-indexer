@@ -27,7 +27,7 @@ This version includes :
 It does not yet include efficient index to have a fast response time for searching by "value". This feature will be added in version 0.2.0 (may be with a functionnal index or iFind index, to analysis...).  
 
 ## Installation
-  
+
 ```
 zpm "install journal-indexer"
 ```
