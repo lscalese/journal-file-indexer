@@ -5,9 +5,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat&logo=AdGuard)](LICENSE)
 # IRIS Journal file indexer
 
-```objectscript
-zpm "test"
-```
 **Important** : *It is not ready to use. This package is currently on OEX only to facilitate iterative reviews during development. Consider it will be ready only from version 1.0.0.*
 
 ## Description
