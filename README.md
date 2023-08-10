@@ -28,9 +28,7 @@ It does not yet include efficient index to have a fast response time for searchi
 
 ## Installation
 
-```
-test
-```
+
 ```
 zpm "install journal-indexer"
 ```
