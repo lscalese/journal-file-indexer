@@ -31,8 +31,8 @@ It does not yet include efficient index to have a fast response time for searchi
 zpm "install journal-indexer"
 ```
 
-Or using docker:
-  
+Or using docker:  
+
 ```bash
 git clone https://github.com/lscalese/journal-file-indexer.git
 cd journal-file-indexer
@@ -49,7 +49,7 @@ zpm "test journal-indexer"
 
 ### Store data from a journal file in database
 
-#### Using a wizard in the terminal
+### Using a wizard in the terminal
   
 ```objectscript
 Do ##class(dc.journalindexer.services.Indexer).RunIndex()
