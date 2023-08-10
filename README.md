@@ -100,7 +100,8 @@ So, all data are physically stored in IRISTEMP to avoid indexing a journal file 
 By default, the process keep maximum 5 indexed journal files.  
 If 6th is indexed the oldest is automatically removed from the database.  
 
-Yon can increase or decrease this value with this config :
+Yon can increase or decrease this value with this config :  
+
 ```
 Do ##class(dc.journalindexer.services.Config).SetConfig("MaxJournalRetention", 5)
 ```
