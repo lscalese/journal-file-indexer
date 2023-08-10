@@ -32,7 +32,7 @@ zpm "install journal-indexer"
 ```
 
 Or using docker:
-
+  
 ```
 git clone https://github.com/lscalese/journal-file-indexer.git
 cd journal-file-indexer
@@ -40,7 +40,7 @@ docker-compose up -d
 ```
 
 ## Run Unit Tests
-
+  
 ```
 zpm "test journal-indexer"
 ```
@@ -50,7 +50,7 @@ zpm "test journal-indexer"
 ### Store data from a journal file in database
 
 #### Using a wizard in the terminal
-
+  
 ```Objectscript
 Do ##class(dc.journalindexer.services.Indexer).RunIndex()
 
@@ -58,7 +58,7 @@ Journal file path (? help, q quit): ?
 ```
 
 Type the path of a journal file or `?` to show list of journal files on this system:
-
+  
 ```
 Journal file path (? help, q quit): ?
   1) /usr/irissys/mgr/journal/20230805.003
@@ -68,8 +68,9 @@ Journal file path (? help, q quit): ?
   5) /usr/irissys/mgr/journal/20230808.001
 Journal file path (? help, q quit): 
 ```
-
+  
 Then type a path or just a number related to a journal file, typing `2` is similar to `/usr/irissys/mgr/journal/20230805.004`:
+  
 ```
 Journal file path (? help, q quit): 2
 Start read journal    17087424 / 17087424  
@@ -83,7 +84,7 @@ OK
 
 
 #### Programmatically
-
+  
 ```
 Set sc = ##class(dc.journalindexer.services.Indexer).Index("/usr/irissys/mgr/journal/20230805.004", "20230805.004", "")
 ```
@@ -101,7 +102,7 @@ By default, the process keep maximum 5 indexed journal files.
 If 6th is indexed the oldest is automatically removed from the database.  
 
 Yon can increase or decrease this value with this config :  
-
+  
 ```
 Do ##class(dc.journalindexer.services.Config).SetConfig("MaxJournalRetention", 5)
 ```
@@ -112,7 +113,7 @@ Do ##class(dc.journalindexer.services.Config).SetConfig("MaxJournalRetention", 5
 
 Data are available in `dc_journalindexer_data` schema.  
 You can view data using query like:
-
+  
 ```SQL
 SELECT * FROM dc_journalindexer_data.Record
 SELECT * FROM dc_journalindexer_data.SetKillRecord
@@ -129,7 +130,7 @@ The unit tests cover the `Index`, `DeleteJournal` methods.
 A journal file is generated with 10000 SET and 10001 KILL on the global `^dc.journalindexer.testD`.  
 
 The interactive menu (method `RunIndex`) is also covered using Job, input\output files and `$SYSTEM.Event` utils (syntax `Job classmethod:(::inputFile:outputFile)` )
-
+  
 ```
 zpm "test journal-indexer"
 ```
