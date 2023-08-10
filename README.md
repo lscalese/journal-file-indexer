@@ -6,7 +6,7 @@
 
 # IRIS Journal file indexer
 
-Important : It is not ready to use. This package is currently on OEX only to facilitate iterative reviews during development. Consider it will be ready only from version 1.0.0.
+**Important** : *It is not ready to use. This package is currently on OEX only to facilitate iterative reviews during development. Consider it will be ready only from version 1.0.0.*
 
 ## Description
 
@@ -14,7 +14,7 @@ The log file search functionality integrated into the management portal is curre
 
 ## Release note
 
-Version 0.1.0
+**Version 0.1.0**
 
 See the progression [here](https://github.com/users/lscalese/projects/2/views/1?filterQuery=milestone%3A%22Journal+File+Indexer+Version+0.1.0%22)  
 
