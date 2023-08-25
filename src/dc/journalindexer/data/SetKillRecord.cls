@@ -32,7 +32,11 @@ Property Collation As %Integer;
 /// GlobalName 
 Property GlobalName As %String(MAXLEN = 128);
 
+Property Subscripts As list Of %String;
+
 Index GlobalNameI On GlobalName [ Type = bitmap ];
+
+Index SubscriptsI On Subscripts(ELEMENTS);
 
 Storage Default
 {
@@ -67,6 +71,9 @@ Storage Default
 </Value>
 <Value name="10">
 <Value>GlobalName</Value>
+</Value>
+<Value name="11">
+<Value>Subscripts</Value>
 </Value>
 </Data>
 <DefaultData>SetKillRecordDefaultData</DefaultData>
