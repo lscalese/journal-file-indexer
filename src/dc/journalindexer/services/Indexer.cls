@@ -26,7 +26,7 @@ ClassMethod RunIndex() As %Status
             If '##class(%File).Exists(JournalFile) Write !, "Journal file not found." Continue
         }
 
-        If '##class(%SYS.Journal.File).IsValidJournal(JournalFile) Write !,"File ", JournalFile, " is not a valid journa file." Continue
+        If '##class(%SYS.Journal.File).IsValidJournal(JournalFile) Write !,"File ", JournalFile, " is not a valid journal file." Continue
 
         Quit
     }
@@ -37,6 +37,8 @@ ClassMethod RunIndex() As %Status
     Do:'$SYSTEM.Event.Defined(resourceName) $SYSTEM.Event.Create(resourceName)
     Job ..Index(JournalFile, name, resourceName)
     
+    Write !
+
     For  {
         Set returnList = $SYSTEM.Event.WaitMsg(resourceName, 10)
         
@@ -46,7 +48,7 @@ ClassMethod RunIndex() As %Status
             
             Set msg = {}.%FromJSON($ListGet(returnList,2))
             
-            If msg.Status = "InProgress" {
+            If msg.Action = "Load Journal" {
                 Do showProgression
             } Else {
                 Do ShowMessage
@@ -71,21 +73,32 @@ ClassMethod RunIndex() As %Status
     Quit sc
 
 showProgression
-    Set showProgression = $Justify(msg.CurrentAddress, 12) _ " / " _ msg.LastAddress_"  "
+    Set showProgression = $Justify(msg.Journal.CurrentAddress, 12) _ " / " _ msg.Journal.LastAddress_"  "
     Write showProgression
     For i=1:1:$Length(showProgression) Write $c(8)
 
     Quit
 
 ShowMessage
-    Write !,msg.Message
+
+    Write !," * ",msg.Action," ", msg.Message
     Quit
 
 ShowHelp
     Kill list
     Do ##class(%SYS.Journal.History).LoadLog(, .list)
     Set key = ""
-    For  Set key = $Order(list(key), 1, value) Quit:key=""  Write !,$Justify(key,3),") ",$Piece(value, ",", 2)
+    For  {
+        Set key = $Order(list(key), 1, value) 
+        Quit:key=""  
+        Write !,$Justify(key,3),") ",$Piece(value, ",", 2)
+
+        If key#20 = 0, key '= $Order(list(""), -1) {
+            Write !, "Press <any key> to display next 20 records or (q) to stop." 
+            Read *x Quit:x=$a("q")
+        }
+    }
+    Write !
     Quit
 }
 
@@ -101,18 +114,26 @@ ClassMethod Index(
 
     Set sc = $$$OK
 
-    If '##class(%File).Exists(JournalFile) Set JournalFile = JournalFile _ "z" Quit:'##class(%File).Exists(JournalFile) $$$ERROR($$$GeneralError, "File does not exist.")
-    If '##class(%SYS.Journal.File).IsValidJournal(JournalFile) Quit $$$ERROR($$$GeneralError, "Is not a valid journal file.")
+    Set msg = {"Action" : "File Validation", "Status" : "", "Message" : "", "Journal": {"FirstAddress":"", "LastAddress" : "", "CurrentAddress": ""}}
+
+    If '##class(%File).Exists(JournalFile) Set JournalFile = JournalFile _ "z" Set:'##class(%File).Exists(JournalFile) sc = $$$ERROR($$$GeneralError, "File does not exist.") Do EventSignalStatus Quit sc
+    If '##class(%SYS.Journal.File).IsValidJournal(JournalFile) Set sc = $$$ERROR($$$GeneralError, "Is not a valid journal file.") Do EventSignalStatus Quit sc
+
+    Set msg.Message = JournalFile _ " exists." Do EventSignal
+    Set msg.Message = JournalFile _ " is a valid journal file." Do EventSignal Set msg.Message = ""
 
     Lock +^dc.journalindexer.services.Indexer:2 ; Only one index process at a time
 
     Set:'$Test sc = $$$ERROR($$$GeneralError, "An indexer process already running, process id :" _ ^$LOCK($Name(^dc.journalindexer.services.Indexer), "OWNER"))
 
-    If $$$ISERR(sc) Do:Notify'="" $SYSTEM.Event.Signal(Notify, {"Status":"ERR", "Message":($SYSTEM.Status.GetOneErrorText(sc))}.%ToJSON()) Quit sc
+    If $$$ISERR(sc) Do EventSignalStatus Quit sc
 
+    Set msg.Action = "Stop Journaling" Do EventSignal
     Do ##class(dc.journalindexer.services.Indexer).StopJournal(.transactionMode, .autoCommitMode)
 
     Try {
+
+        Set msg.Action = "Starting load journal file ... " Do EventSignal
         
         Set journal = ##class(%SYS.Journal.File).%OpenId(JournalFile, , .sc) Quit:$$$ISERR(sc)
         
@@ -120,16 +141,11 @@ ClassMethod Index(
 
         Set jrnRecord = journal.FirstRecord
 
-        Do:Notify'="" $SYSTEM.Event.Signal(Notify, {"Message":"Start read journal"}.%ToJSON())       
+        Set msg.Action = "Load Journal", 
+            msg.Status = "InProgress", 
+            msg.Journal = {"FirstAddress":(journal.FirstRecord.Address), "LastAddress" : (journal.LastRecord.Address), "CurrentAddress": ""}
         
-        Set:Notify'="" msg = {
-            "FirstAddress":(journal.FirstRecord.Address),
-            "LastAddress":(journal.LastRecord.Address),
-            "Name":(journal.Name),
-            "Status":"InProgress"
-        }
-        
-        Do:Notify'="" $SYSTEM.Event.Signal(Notify, msg.%ToJSON())
+        Do EventSignal
 
         ; if $ZStorage is less than 1Gb, we flush when 80% of the process memory is reached.
         ; if $ZStorage is greather than 1Gb, we force the limit before flush to 800Mb
@@ -139,30 +155,30 @@ ClassMethod Index(
 
         While $IsObject(jrnRecord) {
             
+            Set:Notify'="" msg.Journal.CurrentAddress = jrnRecord.Address
+            
             Do ##class(dc.journalindexer.dao.JournalDataDAO).SetRecordInBuffer(jrnRecord, .FileId, .lastRecordId)
             
             ; we use the process memory until 80% before flush the buffer
             If $Storage < limitBeforeFlush Do ##class(dc.journalindexer.dao.JournalDataDAO).FlushBuffer()
             
-            Set:Notify'="" msg.CurrentAddress = jrnRecord.Address
             Set jrnRecord = jrnRecord.Next
             
             If $Increment(i) # ..#STEPSIGNAL Continue
+            Do EventSignal
 
-            Do:Notify'="" $SYSTEM.Event.Signal(Notify, msg.%ToJSON())
         }
 
-        Do:Notify'="" $SYSTEM.Event.Signal(Notify, msg.%ToJSON())
+        Do EventSignal
 
-        If Notify '= "" Set msg.Status = "Flush", msg.Message= "FlushBuffer..." Do $SYSTEM.Event.Signal(Notify, msg.%ToJSON())
-        Do ##class(dc.journalindexer.dao.JournalDataDAO).FlushBuffer()
+        Set msg.Action = "Flush", msg.Message= "Flush Buffer ..."
+        Do EventSignal, ##class(dc.journalindexer.dao.JournalDataDAO).FlushBuffer()
         
-        If Notify '= "" Set msg.Status = "BuildIndices", msg.Message= "BuildIndices..." Do $SYSTEM.Event.Signal(Notify, msg.%ToJSON())
+        Set msg.Action = "Build Indices", msg.Message= "..." Do EventSignal
         Set sc = ##class(dc.journalindexer.dao.JournalDataDAO).RebuildIndices(startIndexId,lastRecordId)
 
-        Do:Notify'="" $SYSTEM.Event.Signal(Notify,{"Message":"Delete old journal ..."}.%ToJSON())
+        Set msg.Action= "Delete old journal", msg.Message= "..." Do EventSignal
         Job ##class(dc.journalindexer.services.Indexer).DeleteOld()
-        
 
     } Catch ex {
         Set sc = ex.AsStatus()
@@ -170,11 +186,23 @@ ClassMethod Index(
 
     Lock -^dc.journalindexer.services.Indexer
 
+    Set msg.Action = "Restore journal state", msg.Message = "..." Do EventSignal
     Do ##class(dc.journalindexer.services.Indexer).RestoreJournalState(transactionMode, autoCommitMode)
 
-    If Notify '= "" Set msg.Status = $Select($$$ISOK(sc):"Done",1:"ERR"), msg.Message=$Select($$$ISERR(sc):$SYSTEM.Status.GetOneErrorText(sc),1:"OK") Do $SYSTEM.Event.Signal(Notify, msg.%ToJSON())
+    Set msg.Status = $Select($$$ISOK(sc):"Done",1:"ERR"), msg.Message="with status : "_$Select($$$ISERR(sc):$SYSTEM.Status.GetOneErrorText(sc),1:"OK")
+
+    Set msg.Action = "ENDED" Do EventSignal
 
     Return sc
+
+EventSignal
+    Quit:Notify=""
+    Do $SYSTEM.Event.Signal(Notify, msg.%ToJSON())
+    Quit
+EventSignalStatus
+    Set msg.Status = "ERR", msg.Message = $SYSTEM.Status.GetOneErrorText(sc)
+    Do EventSignal
+    Quit
 }
 
 ClassMethod IndexStream(
