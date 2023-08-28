@@ -6,6 +6,11 @@ ClassMethod MaxJournalRetention() As %Integer [ CodeMode = expression ]
 ..GetConfig("MaxJournalRetention")
 }
 
+ClassMethod SetMaxJournalRetention(value As %Integer) As %Status [ CodeMode = expression ]
+{
+..SetConfig("MaxJournalRetention", value)
+}
+
 ClassMethod SetConfig(
 	key As %String,
 	value As %String) As %Status
