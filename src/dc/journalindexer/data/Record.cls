@@ -29,7 +29,7 @@ Property InTransaction As %Integer;
 /// looking up the corresponding process id in a translation table maintained by
 /// the system. If the process id cannot be calculated, the jobid with the string
 /// "(jid") appended is returned.
-Property ProcessID As dc.journalindexer.data.File;
+Property ProcessID As %Integer;
 
 /// Internal jobid stored with each journal record in the journal file
 Property JobID As %Integer;
@@ -55,7 +55,9 @@ Index ProcessID On ProcessID [ Type = bitmap ];
 
 Index TimeStampI On TimeStamp;
 
-Index AdressI On Address;
+Index AddressI On Address [ Type = bitslice ];
+
+Index TypeI On Type [ Type = bitmap ];
 
 Method TypeNameGet() As %String
 {
