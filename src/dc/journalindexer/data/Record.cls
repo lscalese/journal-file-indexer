@@ -4,7 +4,7 @@ Class dc.journalindexer.data.Record Extends %Persistent
 Property File As %Integer [ Required ];
 
 /// Location of the record in the journal file
-Property Address As %String [ Required ];
+Property Address As %Integer [ Required ];
 
 /// Type of the record in numeric form
 Property Type As %Library.JournalRecordType;
@@ -58,6 +58,8 @@ Index TimeStampI On TimeStamp;
 Index AddressI On Address [ Type = bitslice ];
 
 Index TypeI On Type [ Type = bitmap ];
+
+Index FileAddr On (File, Address) [ Unique ];
 
 Method TypeNameGet() As %String
 {

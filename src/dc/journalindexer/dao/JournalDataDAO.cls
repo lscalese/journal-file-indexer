@@ -77,6 +77,11 @@ ClassMethod RebuildIndices(
     Quit sc
 }
 
+ClassMethod GetNextRecord(record As dc.journalindexer.data.Record) As dc.journalindexer.data.Record
+{
+    If record.NextAddress = "" Return ""
+}
+
 ClassMethod ClearAll()
 {
     Do ##class(dc.journalindexer.data.BitSetRecord).%KillExtent()
@@ -88,6 +93,8 @@ ClassMethod ClearAll()
     Do ##class(dc.journalindexer.data.SetKillRecord).%PurgeIndices()
     Do ##class(dc.journalindexer.data.Record).%PurgeIndices()
     Do ##class(dc.journalindexer.data.File).%PurgeIndices()
+
+    Kill ^IRIS.Temp.data.RecordI, ^IRIS.Temp.data.RecordD
 
     Quit
 }

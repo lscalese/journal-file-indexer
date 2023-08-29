@@ -34,9 +34,23 @@ Property GlobalName As %String(MAXLEN = 128);
 
 Property Subscripts As list Of %String;
 
+Property FormattedOldValue As %String [ SqlComputeCode = { Set {*} = ##class(%Utility).FormatString({FormattedOldValue})}, SqlComputed, Transient ];
+
+Property FormattedNewValue As %String [ SqlComputeCode = { Set {*} = ##class(%Utility).FormatString({FormattedNewValue})}, SqlComputed, Transient ];
+
 Index GlobalNameI On GlobalName [ Type = bitmap ];
 
 Index SubscriptsI On Subscripts(ELEMENTS);
+
+Method FormattedOldValueGet() As %String
+{
+    Quit ##class(%Utility).FormatString(..OldValue)
+}
+
+Method FormattedNewValueGet() As %String
+{
+    Quit ##class(%Utility).FormatString(..NewValue)
+}
 
 Storage Default
 {

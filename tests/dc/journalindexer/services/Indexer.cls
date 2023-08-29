@@ -58,6 +58,7 @@ Method Test05IndexFileWizard() As %Status
     Set inputFile = ##class(%File).TempFilename("test"), outputFile = inputFile_".out"
     Set file = ##class(%Stream.FileCharacter).%New()
     $$$QuitOnError(file.LinkToFile(inputFile))
+    Do file.WriteLine("?")
     Do file.WriteLine(%ztests("JournalFile"))
 
     Set sc = file.%Save()
