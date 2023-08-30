@@ -33,14 +33,37 @@ ClassMethod RunIndex() As %Status
 
     Set name = ##class(%File).GetFilename(JournalFile)
     
+    Set currentLastJrnId = $Order(^IRIS.Temp.data.FileD(""),-1)
 
     Do:'$SYSTEM.Event.Defined(resourceName) $SYSTEM.Event.Create(resourceName)
     Job ..Index(JournalFile, name, resourceName)
-    
+    Set PIDIndexer = $ZChild
+
     Write !
+    Write !, "Index process started Type (P)ause, (R)esume, (C)ancel."
+
+    Set state = "running"
 
     For  {
-        Set returnList = $SYSTEM.Event.WaitMsg(resourceName, 10)
+
+        Read *x:0
+        
+        If $Test {  ; check pause, resume cancel instruction
+            Set x = $$$LOWER($Char(x))
+            
+            If x = "p", state = "running" { ; pause -> suspend process
+                Set sc = ..ProcessAction(PIDIndexer, "suspend")
+                If $$$ISOK(sc) Set state = "pause"
+            } ElseIf x = "r", state '= "running" { ; resume -> resume process
+                Set sc = ..ProcessAction(PIDIndexer, "resume")
+                If $$$ISOK(sc) Set state = "running"
+            } ElseIf x = "c" { ; cancel -> terminate process
+                Set sc = ..ProcessAction(PIDIndexer, "terminate")
+                If $$$ISOK(sc) Set state = "terminate" Quit
+            }
+        }
+
+        Set returnList = $SYSTEM.Event.WaitMsg(resourceName, 2)
         
         Set returnState = $ListGet(returnList, 1)
 
@@ -61,7 +84,7 @@ ClassMethod RunIndex() As %Status
 
         If returnState = -1 Set sc = $$$ERROR($$$GeneralError, "Ressource deleted.") Quit
 
-        If returnState = 0, ##class(%SYS.ProcessQuery).%ExistsId($ZChild) Set sc = $$$ERROR($$$GeneralError, "Index process not found") Quit 
+        If returnState = 0, '##class(%SYS.ProcessQuery).%ExistsId(PIDIndexer) Set sc = $$$ERROR($$$GeneralError, "Index process not found") Quit 
         
     }
     Write !
@@ -69,6 +92,8 @@ ClassMethod RunIndex() As %Status
     Do $SYSTEM.Event.Delete(resourceName)
 
     If $$$ISERR(sc) Do $SYSTEM.Status.DisplayError(sc)
+
+    If state = "terminate" Do CleanInconsistentData
     
     Quit sc
 
@@ -100,6 +125,62 @@ ShowHelp
     }
     Write !
     Quit
+
+CleanInconsistentData
+
+    Set startId = $Get(^dc.journalindexer("startIndexId", PIDIndexer))
+
+    If currentLastJrnId = $Order(^IRIS.Temp.data.FileD(""),-1,data) Quit
+
+    Set currentLastJrnId = $Order(^IRIS.Temp.data.FileD(""),-1)
+
+    Write !, "!! Terminate the indexer process cause inconsistent data and index corruption !!"
+    Write !, "Would you like clean indexed data for journal ", $lg(data,2), " (Y)es, (N)o ? "
+    Read x Set x = $$$LOWER($Extract(x))
+
+    If x '= "y" Quit
+    
+    Write !,!,"Start clean data for ",$lg(data,2)
+    If startId '= "" {
+        Write !, $Char(9), "Rebuild File index starting at id ",startId," ... "
+        Set sc = ##class(dc.journalindexer.data.Record).%BuildIndices($ListBuild("FileI"),,,0,startId)
+        If $$$ISOK(sc) {
+            Write "OK"
+        } Else {
+            Do $SYSTEM.Status.DisplayError(sc)
+        }
+    }
+    Write !, $Char(9), "Delete indexed data ... "
+    Set sc = ..DeleteJournal(currentLastJrnId)
+    If $$$ISOK(sc) {
+        Write "OK"
+    } Else {
+        Do $SYSTEM.Status.DisplayError(sc)
+    }
+    Quit
+}
+
+ClassMethod ProcessAction(
+	PID As %Integer,
+	Action As %String) As %Status [ Private ]
+{
+    New $Namespace Set $Namespace = "%SYS"
+    Set sc = $$$OK
+
+    Set process = ##class(SYS.Process).%OpenId($ZChild,,.sc)
+    If $$$ISERR(sc) Write ! Do $SYSTEM.Status.DisplayError(sc) Quit sc
+
+    If Action = "suspend" {
+        Set sc = process.Suspend()
+        Write !, $Select($$$ISOK(sc): "Process suspended.", 1: $SYSTEM.Status.GetOneErrorText(sc))
+    } ElseIf Action = "resume" {
+        Set sc = process.Resume()
+        Write !, $Select($$$ISOK(sc): "Process resumed.", 1: $SYSTEM.Status.GetOneErrorText(sc))
+    } ElseIf Action = "terminate" {
+        Set sc = process.Terminate()
+        Write !, $Select($$$ISOK(sc): "Process terminated.", 1: $SYSTEM.Status.GetOneErrorText(sc))
+    }
+    Quit sc
 }
 
 /// Open a journal file and index its content in database.
@@ -152,6 +233,7 @@ ClassMethod Index(
         Set limitBeforeFlush = $Select($zstorage > 1073741824: 1024**4, 1: $zstorage*1024) * .2
 
         Set startIndexId = $Get(^IRIS.Temp.data.RecordD, 0) + 1
+        Set ^dc.journalindexer("startIndexId", $job) = startIndexId
 
         While $IsObject(jrnRecord) {
             

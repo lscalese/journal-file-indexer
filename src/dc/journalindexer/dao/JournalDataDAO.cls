@@ -77,9 +77,18 @@ ClassMethod RebuildIndices(
     Quit sc
 }
 
-ClassMethod GetNextRecord(record As dc.journalindexer.data.Record) As dc.journalindexer.data.Record
+ClassMethod GetJournalFiles(Output sc As %Status) As %DynamicArray
 {
-    If record.NextAddress = "" Return ""
+    Set tStatement = ##class(%SQL.Statement).%New(), array = []
+	Set sc = tStatement.%PrepareClassQuery("dc.journalindexer.dao.Queries", "JournalFile")
+    Return:$$$ISERR(sc) array
+
+	Set tResult = tStatement.%Execute()
+	If tResult.%SQLCODE'=0, tResult.%SQLCODE '= 100 Return $$$ERROR($$$SQLError, tResult.%SQLCODE, tResult.%Message)
+    
+    While tResult.%Next() { Do array.%Push({}.%FromJSON(tResult.%Get("RecordJSON"))) }
+
+    Return array
 }
 
 ClassMethod ClearAll()

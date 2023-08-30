@@ -227,20 +227,6 @@ ProcessCondition
     Quit
 }
 
-ClassMethod GetJournalFiles(Output sc As %Status) As %DynamicArray
-{
-    Set tStatement = ##class(%SQL.Statement).%New(), array = []
-	Set sc = tStatement.%PrepareClassQuery($ClassName(), "JournalFile")
-    Return:$$$ISERR(sc) array
-
-	Set tResult = tStatement.%Execute()
-	If tResult.%SQLCODE'=0, tResult.%SQLCODE '= 100 Return $$$ERROR($$$SQLError, tResult.%SQLCODE, tResult.%Message)
-    
-    While tResult.%Next() { Do array.%Push({}.%FromJSON(tResult.%Get("RecordJSON"))) }
-
-    Return array
-}
-
 ClassMethod GetAddressByTS(
 	JournalFile As %Integer,
 	TimeStamp As %TimeStamp,

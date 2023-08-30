@@ -46,7 +46,7 @@ ProcessSelect
 ListJournalIndexed
     Kill jrn, i
 
-    Set JournalFiles = ##class(dc.journalindexer.dao.Queries).GetJournalFiles(.sc)
+    Set JournalFiles = ##class(dc.journalindexer.dao.JournalDataDAO).GetJournalFiles(.sc)
     
     If $$$ISERR(sc) Do $SYSTEM.Status.DisplayError(sc) Quit
 
@@ -66,7 +66,7 @@ ListJournalIndexed
 Navigate
     Write !,!, "Select a journal file # => " Read x
     Quit:x=""
-
+    
     If '$Data(jrn($p(x," ")),FileInfo) Write !,"Item ", $p(x," "), " not found." Quit
 
     Set journalEntry = ##class(dc.journalindexer.data.Record).FileAddrOpen($LG(FileInfo,1),$LG(FileInfo,3)),x = "n"
