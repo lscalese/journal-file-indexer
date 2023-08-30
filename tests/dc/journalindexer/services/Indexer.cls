@@ -60,7 +60,8 @@ Method Test05IndexFileWizard() As %Status
     $$$QuitOnError(file.LinkToFile(inputFile))
     Do file.WriteLine("?")
     Do file.WriteLine(%ztests("JournalFile"))
-
+    If $Data(^ROUTINE("ZJRNFILT")) Do file.WriteLine("No")
+    for i=1:1:10000 Do file.WriteLine("n")
     Set sc = file.%Save()
 
     Do $$$AssertStatusOK(sc, $Replace("Create temp input file %1.", "%1", inputFile))
@@ -114,7 +115,7 @@ ClassMethod UnitTestRunIndex(Notify As %String) As %Status [ Internal ]
 Method Test99DeleteJournal() As %Status
 {
     Set sc = $$$OK, id = ""
-    For  Set id = $Order(%ztests("FileId", id)) Quit:id=""  Set sc = $$$ADDSC(sc,##class(dc.journalindexer.services.Indexer).DeleteJournal(id))
+    For  Set id = $Order(%ztests("FileId", id)) Quit:id=""  Set sc = $$$ADDSC(sc,##class(dc.journalindexer.services.Indexer).DeleteIndexedJournalData(id))
     Do $$$AssertStatusOK(sc, "Delete indexed journal in database")
     Quit sc
 }

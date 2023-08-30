@@ -1,0 +1,5 @@
+ROUTINE ZJRNFILT
+ZJRNFILT(jidsys,dir,glo,type,restmode,addr,time)    /*Filter*/
+    Set restmode=0                                  /*Return 0 for restore*/
+    If glo["SYS" Set restmode=1                     /*except when it is ^XYZ*/
+    Quit

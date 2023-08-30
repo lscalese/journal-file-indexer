@@ -31,12 +31,19 @@ ClassMethod RunIndex() As %Status
         Quit
     }
 
+    Set filter = $$$NO
+
+    If $Data(^ROUTINE("ZJRNFILT")) {
+        Write !,!,"Apply filter routine ^JRNFILT (Y)es or (N)o  default:(No) ? " Read filter
+        Set filter = $Select($$$LOWER($Extract(filter))="y":$$$YES,1:$$$NO)
+    }
+
     Set name = ##class(%File).GetFilename(JournalFile)
     
     Set currentLastJrnId = $Order(^IRIS.Temp.data.FileD(""),-1)
-
+    
     Do:'$SYSTEM.Event.Defined(resourceName) $SYSTEM.Event.Create(resourceName)
-    Job ..Index(JournalFile, name, resourceName)
+    Job ..Index(JournalFile, name, resourceName, "", filter)
     Set PIDIndexer = $ZChild
 
     Write !
@@ -151,7 +158,7 @@ CleanInconsistentData
         }
     }
     Write !, $Char(9), "Delete indexed data ... "
-    Set sc = ..DeleteJournal(currentLastJrnId)
+    Set sc = ..DeleteIndexedJournalData(currentLastJrnId)
     If $$$ISOK(sc) {
         Write "OK"
     } Else {
@@ -188,12 +195,15 @@ ClassMethod Index(
 	JournalFile As %String,
 	Name As %String = {##class(%File).GetFilename(JournalFile)},
 	Notify As %String = "",
-	Output FileId As %Integer = "") As %Status
+	Output FileId As %Integer = "",
+	ApplyZJRNFILT As %Boolean = {$$$NO}) As %Status
 {
     #dim journal As %SYS.Journal.File
     #dim jrnRecord As %SYS.Journal.Record
 
-    Set sc = $$$OK
+    Set sc = $$$OK, applyFilter = $$$NO
+
+    If ApplyZJRNFILT, $Data(^ROUTINE("ZJRNFILT")) Set applyFilter = $$$YES
 
     Set msg = {"Action" : "File Validation", "Status" : "", "Message" : "", "Journal": {"FirstAddress":"", "LastAddress" : "", "CurrentAddress": ""}}
 
@@ -234,12 +244,18 @@ ClassMethod Index(
 
         Set startIndexId = $Get(^IRIS.Temp.data.RecordD, 0) + 1
         Set ^dc.journalindexer("startIndexId", $job) = startIndexId
-
+        Set restmode = 1
+        
         While $IsObject(jrnRecord) {
             
             Set:Notify'="" msg.Journal.CurrentAddress = jrnRecord.Address
             
-            Do ##class(dc.journalindexer.dao.JournalDataDAO).SetRecordInBuffer(jrnRecord, .FileId, .lastRecordId)
+            If applyFilter {
+                Set restmode = 1
+                Do:jrnRecord.%IsA("%SYS.Journal.SetKillRecord") ^ZJRNFILT(jrnRecord.JobID_","_jrnRecord.RemoteSystemID,jrnRecord.DatabaseName,jrnRecord.GlobalNode,$Extract(jrnRecord.TypeName),.restmode,jrnRecord.Address,$zdth(jrnRecord.TimeStamp,3,1))
+            }
+            
+            Do:restmode ##class(dc.journalindexer.dao.JournalDataDAO).SetRecordInBuffer(jrnRecord, .FileId, .lastRecordId)
             
             ; we use the process memory until 80% before flush the buffer
             If $Storage < limitBeforeFlush Do ##class(dc.journalindexer.dao.JournalDataDAO).FlushBuffer()
@@ -319,14 +335,14 @@ ClassMethod DeleteOld(Max As %Integer = {##class(dc.journalindexer.services.Conf
     Set sc = $$$OK, id = ""
     For  {
         Set id = $Order(^IRIS.Temp.data.FileD(id),1) Quit:id>=LastId||(id="")
-        Set sc = $$$ADDSC(sc,##class(dc.journalindexer.services.Indexer).DeleteJournal(id))
+        Set sc = $$$ADDSC(sc,##class(dc.journalindexer.services.Indexer).DeleteIndexedJournalData(id))
     }
 
     Quit sc
 }
 
 /// Delete journal indexed in database
-ClassMethod DeleteJournal(JournalId As %Integer) As %Status
+ClassMethod DeleteIndexedJournalData(JournalId As %Integer) As %Status
 {
     Set sc = $$$OK
 
