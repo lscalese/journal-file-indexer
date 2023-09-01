@@ -93,7 +93,7 @@ Navigate
     }
 
     Set journalEntry = ""
-
+    
     Quit
 
 ShowRecords
@@ -181,22 +181,22 @@ DisplayDetailView
     #Define ZLEFTALIGN(%1,%2)  $Reverse($Justify($Reverse(%1),%2))
     Write #
     For i=1:1:80 Write "-"
-    Write !,$$$ZLEFTALIGN("File: "_$ListGet(FileInfo, 2),25)
+    Write !, $$$ZLEFTALIGN("File: "_$ListGet(FileInfo, 2),25)
     Write ##class(%Utility).Center("First Address: "_$ListGet(FileInfo,3),25)
     Write $Justify("Last Address: "_$ListGet(FileInfo,4),30), !
     For i=1:1:80 Write "-"
     Write !, $$$ZLEFTALIGN("Address:",20), journalEntry.Address
-    Write ##class(%Utility).Center("Next: "_journalEntry.NextAddress,25)
-    Write $Justify("Previous: "_journalEntry.PrevAddress,20)
+    Write ##class(%Utility).Center("Next: " _ journalEntry.NextAddress,25)
+    Write $Justify("Previous: " _ journalEntry.PrevAddress,20)
     Write !, $$$ZLEFTALIGN("TimeStamp:",20), journalEntry.TimeStamp
     Write !, $$$ZLEFTALIGN("Type:",20), journalEntry.TypeName
     Write !, $$$ZLEFTALIGN("In Transaction: ",20), $Select(journalEntry.InTransaction:"YES",1:"NO")
     Write !, $$$ZLEFTALIGN("Process ID: ",20), journalEntry.ProcessID
     Write !, $$$ZLEFTALIGN("Database:",20) , journalEntry.DatabaseName
     Write !, $$$ZLEFTALIGN("Global Node:",20) , journalEntry.GlobalNode
-    Write !,!,$$$ZLEFTALIGN("Nbr of values:",20) , journalEntry.NumberOfValues
-    Write !,$$$ZLEFTALIGN("Old Value:",20), journalEntry.FormattedOldValue
-    Write !,$$$ZLEFTALIGN("New Value:",20), journalEntry.FormattedNewValue
+    Write !,!, $$$ZLEFTALIGN("Nbr of values:",20) , journalEntry.NumberOfValues
+    Write !, $$$ZLEFTALIGN("Old Value:",20), journalEntry.FormattedOldValue
+    Write !, $$$ZLEFTALIGN("New Value:",20), journalEntry.FormattedNewValue
     Write !,!
     Quit
 }

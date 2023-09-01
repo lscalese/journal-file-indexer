@@ -16,7 +16,6 @@ Method OnBeforeAllTests() As %Status
 
 Method OnAfterAllTests() As %Status
 {
-
     Do $SYSTEM.Process.SynchCommit(0)
     
     Kill %ztests("JournalFile")
@@ -59,6 +58,9 @@ Method Test05IndexFileWizard() As %Status
     Set file = ##class(%Stream.FileCharacter).%New()
     $$$QuitOnError(file.LinkToFile(inputFile))
     Do file.WriteLine("?")
+    Do ##class(%SYS.Journal.History).LoadLog(, .list)
+    For i=1:1:($Order(list(""),-1) \ 20) Do file.Write("n")
+
     Do file.WriteLine(%ztests("JournalFile"))
     If $Data(^ROUTINE("ZJRNFILT")) Do file.WriteLine("No")
     for i=1:1:10000 Do file.WriteLine("n")

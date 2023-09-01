@@ -70,7 +70,7 @@ ClassMethod RebuildIndices(
 	startId As %Integer,
 	lastId As %Integer) As %Status
 {
-    Set sc = ##class(dc.journalindexer.data.Record).%BuildIndices($ListBuild("$Record","FileI", "ProcessID", "TimeStampI", "AddressI", "TypeI"), 1, 0, 0, startId, lastId),
+    Set sc = ##class(dc.journalindexer.data.Record).%BuildIndices($ListBuild("$Record","FileI", "ProcessID", "TimeStampI", "AddressI", "TypeI", "FileAddr"), 1, 0, 0, startId, lastId),
         sc = $$$ADDSC(sc,##class(dc.journalindexer.data.SetKillRecord).%BuildIndices($ListBuild("$SetKillRecord", "GlobalNameI", "SubscriptsI"), 1, 0, 0, startId, lastId)),
         sc = $$$ADDSC(sc,##class(dc.journalindexer.data.BitSetRecord).%BuildIndices($ListBuild("$BitSetRecord"), 1, 0, 0, startId, lastId))
 

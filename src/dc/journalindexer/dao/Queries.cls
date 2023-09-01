@@ -32,7 +32,7 @@ ClassMethod SearchRecordExecute(
     If '$IsObject(Filter) Set Filter = {}.%FromJSON(Filter)
 
     Set sql($Increment(sql)) = "SELECT ID, File, TypeName, TimeStamp, InTransaction, ProcessID, DatabaseName, NumberOfValues, GlobalNode, Address "
-                                _ ", dc_journalindexer_dao.Queries_FormatString(OldValue) As FormattedOldValue, dc_journalindexer_dao.Queries_FormatString(NewValue) As FormattedNewValue "
+                                _ ", FormattedOldValue, FormattedNewValue "
     Set sql($Increment(sql)) = "FROM dc_journalindexer_data.SetKillRecord "
     Set sql($Increment(sql)) = "WHERE "
     $$$QuitOnError(..SearchQueryBuilder(Filter, .args, .sql))
