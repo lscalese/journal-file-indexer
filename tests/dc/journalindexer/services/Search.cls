@@ -126,6 +126,83 @@ Method Test015Search() As %Status
     Quit sc
 }
 
+Method Test020Menu() As %Status
+{
+    Set sc = $$$OK
+
+    Set inputFile = ##class(%File).TempFilename("menu-test"), outputFile = inputFile_".out"
+    Set file = ##class(%Stream.FileCharacter).%New()
+    $$$QuitOnError(file.LinkToFile(inputFile))
+
+    Do file.Write("1")      ; Show list of indexed journal files.
+    Do file.Write("q")      ; Quit, return to main menu.
+    
+    Do file.Write("2")      ; Navigate.
+    Do file.WriteLine("1")  ; Select the first file.
+    Do file.Write("q")      ; Quit, return to main menu.
+
+    Do file.Write("3")      ; Search (list view).
+    Do file.WriteLine("1")  ; Select the first file.
+    Do file.WriteLine("")   ; Empty filter
+    Do file.Write("q")      ; Quit, return to main menu.
+
+    Do file.Write("4")      ; Search (list view).
+    Do file.WriteLine("1")  ; Select the first file.
+    Do file.WriteLine("")   ; Empty filter
+    Do file.Write("q")      ; Quit, return to main menu.
+
+    Do file.Write("q")      ; Quit.
+
+    Set sc = file.%Save()
+
+    Do $$$AssertStatusOK(sc, $Replace("Create temp input file %1.", "%1", inputFile))
+
+    Set ressource = "UnitTestMenu"
+
+    Do:$SYSTEM.Event.Defined(ressource) $SYSTEM.Event.Delete(ressource)
+    Do $SYSTEM.Event.Create("UnitTestMenu")
+
+    Job ..UnitTestMenu(ressource):(::inputFile:outputFile)
+
+    Set returnList = $SYSTEM.Event.WaitMsg(ressource, 25)
+
+    Set state = $ListGet(returnList, 1)
+    
+    If state = -1 {
+        Set sc = $$$ERROR($$$GeneralError, "Ressource deleted.")
+    } ElseIf state = 0 {
+        Set sc = $$$ERROR($$$GeneralError, "Wait Message timeout.")
+    } Else {
+        Set sc = $ListGet(returnList, 2)
+
+        Set out = ##class(%Stream.FileCharacter).%New()
+        Do out.LinkToFile(outputFile)
+        
+        Do ..LogMessage("Output : ")
+        Do ..LogMessage("----------------------------------")
+        While 'out.AtEnd {
+            Set line = out.ReadLine() Do ..LogMessage($Select($Length(line)>512:$Extract(line,1,512)_"...",1:line))
+        }
+        Do ..LogMessage("----------------------------------")
+        
+        Kill out
+        Do ##class(%File).Delete(inputFile), ##class(%File).Delete(outputFile)
+    }
+
+    Do $$$AssertStatusOK(sc, "Test return menu.")
+    
+    Do $SYSTEM.Event.Delete(ressource)
+
+    Quit sc
+}
+
+ClassMethod UnitTestMenu(Notify As %String) As %Status [ Internal ]
+{
+    Set sc = ##class(dc.journalindexer.services.Search).SearchInIndexedJournal()
+    Do $SYSTEM.Event.Signal(Notify,sc)
+    Quit sc
+}
+
 ClassMethod GenerateJournalFile(Output JournalFile As %String) As %Status
 {
     Set sc = $$$OK
