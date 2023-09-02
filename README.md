@@ -239,8 +239,9 @@ The wildcard `*?` are allowed.
 | Subscripts     | =         | `{"GlobalName": {"Value":"^dc.journalindexer.testI"}, "Subscripts": {"Value": " AK","Position":2}}`        | Wildcard allowed       |
 | TimeStamp     | between         | `{"TimeStamp":{"Start":"2023-08-24 00:00:22","End":"2023-08-24 02:00:22","Operator":"between"}}`        | Allowed operator `between,>,>=,<,<=`        |
 | Type     | =         | `{"Type":{"Value":"KILL"}}`        |         |
-|      |          |         |         |
-|      |          |         |         |
+
+
+**Note** : Search in terminal mode is not very convenient, later a web interface will be developped.  
 
 
 #### SQL
@@ -273,7 +274,7 @@ AND dc_journalindexer_dao.Queries_GetListPosition(NewValue,4) = 'Newton' "
 ### Indexer Process
 
 The unit tests cover the `Index`, `DeleteIndexedJournalData` methods.  
-A journal file is generated with 10000 SET and 10001 KILL on the global `^dc.journalindexer.testD`.  
+A journal file is generated with 10000 SET and 10000 KILL on the global `^dc.journalindexer.testD`.  
 
 The interactive menu (method `RunIndex`) is also covered using Job, input\output files and `$SYSTEM.Event` utils (syntax `Job classmethod:(::inputFile:outputFile)` )
 
