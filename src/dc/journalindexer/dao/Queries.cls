@@ -132,6 +132,11 @@ ClassMethod SearchQueryBuilder(
     }
     */
 
+    Set iter = Filter.%GetIterator()
+    While iter.%GetNext(.k, .v, .t) {
+        If $Isobject(v), v.%IsDefined("Start") Set v.Value = v.Start
+    }
+
     /// display to logical
     For key = "Type" {
         Continue:'$$$ZCanAddToWhereClause(key)
