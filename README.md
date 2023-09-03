@@ -268,6 +268,23 @@ AND Type = 'SET'
 AND dc_journalindexer_dao.Queries_GetListPosition(NewValue,4) = 'Newton' "
 ```
 
+The class `dc.journalindexer.dao.Queries` contains the custom class query `SearchRecord`.  
+You can use in parameter the filter in JSON format, so the query : 
+
+```sql
+SELECT * 
+FROM dc_journalindexer_dao.Queries_SearchRecord('{"GlobalName": {"Value":"^dc.journalindexer.testI"}, "Subscripts": {"Value": " AK","Position":2}}') 
+```
+
+Is the same that the following query : 
+```sql
+SELECT * 
+FROM dc_journalindexer_data.SetKillRecord 
+WHERE File = 89 
+AND GlobalName = '^dc.journalindexer.testI' 
+AND FOR SOME %ELEMENT(Subscripts) (%VALUE = ' AK' AND %KEY = 2)
+```
+
 
 ## About Unit Tests
 
