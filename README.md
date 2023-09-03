@@ -233,8 +233,8 @@ The wildcard `*?` are allowed.
 |      | [ (contain)         | `{"GlobalName": {"Value":"*journalindexer*"}}`        |         |
 |      | LIKE         |  `{"GlobalName": {"Value":"*journa?ind?xer.*"}}`       |         |
 | InTransaction    | =         | `{"Address":{"Value":1}}`        |         |
-| NewValue     | =         | `"NewValue": {"Value": " Newton","Position":4}`        | Wildcard allowed (Position make sense for List value)      |
-| OldValue     | =         | `"OldValue": {"Value": " Newton","Position":4}`        | Wildcard allowed (Position make sense for List value)      |
+| NewValue     | =         | `{"NewValue": {"Value": " Newton","Position":4}`        | Wildcard allowed (Position make sense for List value)      |
+| OldValue     | =         | `{"OldValue": {"Value": " Newton","Position":4}`        | Wildcard allowed (Position make sense for List value)      |
 | ProcessID     | =         | `{"ProcessID":{"Value":2455}}`        |         |
 | Subscripts     | =         | `{"GlobalName": {"Value":"^dc.journalindexer.testI"}, "Subscripts": {"Value": " AK","Position":2}}`        | Wildcard allowed       |
 | TimeStamp     | between         | `{"TimeStamp":{"Start":"2023-08-24 00:00:22","End":"2023-08-24 02:00:22","Operator":"between"}}`        | Allowed operator `between,>,>=,<,<=`        |
