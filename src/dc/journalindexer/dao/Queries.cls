@@ -84,54 +84,7 @@ ClassMethod SearchQueryBuilder(
     #define ZADDAND $Select($Get(sql,0)>(startIndice+1):" AND ",1:"")
     #define ZCanAddToWhereClause(%key) (Filter.%IsDefined(%key) && (Filter.%Get(%key).Value '= "")) 
     #define ZIsAllowedOperator(%operator) (''$ListFind($ListBuild("between",">",">=","<","<=","["),$$$LOWER(%operator)))
-    /*
-    Set:$g(Filter)="" Filter = {
-        "DatabaseName": {
-            "Value": "/iris/blabla/"
-        },
-        "Subscripts": {
-            "Value": "mysub",
-            "Position": "2"
-        },
-        "GlobalName": {
-            "Value": ""
-        },
-        "InTransaction": {
-            "Value": "1"
-        },
-        "File": {
-            "Value": "1"
-        },
-        "MirrorDatabaseName": {
-            "Value": "mirrordbname"
-        },
-        "Type": {
-            "Value": "SET"
-        },
-        "ProcessID": {
-            "Value" : 1234
-        },
-        "Address": {
-            "Value": "1",
-            "Start": "1",
-            "End": "9999999",
-            "Operator": "between"
-        },
-        "TimeStamp": {
-            "Value": "2023-08-24 00:00:22",
-            "Start": "2023-08-24 00:00:22",
-            "End": "",
-            "Operator": ""
-        },
-        "OldValue": {
-            "Value": ""
-        },
-        "NewValue": {
-            "Value": ""
-        }
-    }
-    */
-
+    
     Set iter = Filter.%GetIterator()
     While iter.%GetNext(.k, .v, .t) {
         If $Isobject(v), v.%IsDefined("Start") Set v.Value = v.Start
