@@ -3,13 +3,17 @@ Class tests.dc.journalindexer.services.Indexer Extends %UnitTest.TestCase
 
 Parameter NSETKILL = 10000;
 
+Property JournalFile As %String;
+
+Property FileId As %Integer;
+
 Method OnBeforeAllTests() As %Status
 {
     Set sc = $$$OK
     Do $SYSTEM.Process.SynchCommit(1)
     
     $$$QuitOnError(..GenerateJournalFile(.JournalFile))
-    Set %ztests("JournalFile") = JournalFile
+    Set ..JournalFile = JournalFile
     
     Quit sc
 }
@@ -18,16 +22,15 @@ Method OnAfterAllTests() As %Status
 {
     Do $SYSTEM.Process.SynchCommit(0)
     
-    Kill %ztests("JournalFile")
     Kill ^dc.journalindexer.testD
     Quit $$$OK
 }
 
 Method Test01IndexFile() As %Status
 {
-    Do ..LogMessage("Index journal file " _ %ztests("JournalFile"))
-    Set sc = ##class(dc.journalindexer.services.Indexer).Index(%ztests("JournalFile"),"unit_test_Test01IndexFile","",.FileId)
-    Set:$$$ISOK(sc) %ztests("FileId", FileId) = $lb(FileId, %ztests("JournalFile"))
+    Do ..LogMessage("Index journal file " _ ..JournalFile)
+    Set sc = ##class(dc.journalindexer.services.Indexer).Index(..JournalFile,"unit_test_Test01IndexFile","",.FileId)
+    Set:$$$ISOK(sc) ..FileId = FileId
 
     Do $$$AssertStatusOK(sc, "Insert journal in database using Index method")
 
@@ -52,7 +55,7 @@ Method Test01IndexFile() As %Status
 Method Test05IndexFileWizard() As %Status
 {
     Set sc = $$$OK
-    Do ..LogMessage("Index journal file " _ %ztests("JournalFile")_ " using wizard")
+    Do ..LogMessage("Index journal file " _ ..JournalFile_ " using wizard")
 
     Set inputFile = ##class(%File).TempFilename("test"), outputFile = inputFile_".out"
     Set file = ##class(%Stream.FileCharacter).%New()
@@ -61,7 +64,7 @@ Method Test05IndexFileWizard() As %Status
     Do ##class(%SYS.Journal.History).LoadLog(, .list)
     For i=1:1:($Order(list(""),-1) \ 20) Do file.Write("n")
 
-    Do file.WriteLine(%ztests("JournalFile"))
+    Do file.WriteLine(..JournalFile)
     If $Data(^ROUTINE("ZJRNFILT")) Do file.WriteLine("No")
     for i=1:1:10000 Do file.WriteLine("n")
     Set sc = file.%Save()
@@ -116,8 +119,7 @@ ClassMethod UnitTestRunIndex(Notify As %String) As %Status [ Internal ]
 
 Method Test99DeleteJournal() As %Status
 {
-    Set sc = $$$OK, id = ""
-    For  Set id = $Order(%ztests("FileId", id)) Quit:id=""  Set sc = $$$ADDSC(sc,##class(dc.journalindexer.services.Indexer).DeleteIndexedJournalData(id))
+    Set sc = ##class(dc.journalindexer.services.Indexer).DeleteIndexedJournalData(..FileId)
     Do $$$AssertStatusOK(sc, "Delete indexed journal in database")
     Quit sc
 }
