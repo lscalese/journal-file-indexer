@@ -38,10 +38,10 @@ ClassMethod SearchRecordExecute(
     $$$QuitOnError(..SearchQueryBuilder(Filter, .args, .sql))
     
     If $Get(%zDebug,1) {
-        s strSql = "", k = "" f  { s k = $o(sql(k),1,item) q:k=""  s strSql = strSql_item }
-        s ^dc.journalindexer("last-sql") = strSql
-        f  { s k = $o(args(k),1,v) q:k=""  s strSql = $Replace(strSql, "?", $s($isvalidnum(v):v,1:"'"_v_"'"), , 1) }
-        s ^dc.journalindexer("last-sql-resolved") = strSql
+        Set strSql = "", k = "" For  s k = $o(sql(k),1,item) Quit:k=""  Set strSql = strSql_item
+        Set ^dc.journalindexer("last-sql") = strSql
+        For  Set k = $Order(args(k),1,v) Quit:k=""  Set strSql = $Replace(strSql, "?", $Select($isvalidnum(v):v,1:"'"_v_"'"), , 1)
+        Set ^dc.journalindexer("last-sql-resolved") = strSql
     }
 
     Set tResult = ##class(%SQL.Statement).%ExecDirect(.tStatement, .sql, args...)
