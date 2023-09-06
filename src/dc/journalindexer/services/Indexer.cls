@@ -246,6 +246,9 @@ ClassMethod Index(
         Set ^dc.journalindexer("startIndexId", $job) = startIndexId
         Set restmode = 1
         
+        Set addr = 131072
+        Set statsData("prevlen") = $zu(78,42,addr), statsData("prevaddr") = addr
+
         While $IsObject(jrnRecord) {
             
             Set:Notify'="" msg.Journal.CurrentAddress = jrnRecord.Address
@@ -256,7 +259,8 @@ ClassMethod Index(
             }
             
             Do:restmode ##class(dc.journalindexer.dao.JournalDataDAO).SetRecordInBuffer(jrnRecord, .FileId, .lastRecordId)
-            
+            Do ##class(dc.journalindexer.dao.JournalDataDAO).SetStatsInBuffer(jrnRecord, .statsData)
+
             ; we use the process memory until 80% before flush the buffer
             If $Storage < limitBeforeFlush Do ##class(dc.journalindexer.dao.JournalDataDAO).FlushBuffer()
             
@@ -266,6 +270,8 @@ ClassMethod Index(
             Do EventSignal
 
         }
+
+        Do:$Data(statsData) ##class(dc.journalindexer.dao.JournalDataDAO).SaveStats(FileId, .statsData)
 
         Do EventSignal
 

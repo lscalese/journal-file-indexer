@@ -217,6 +217,17 @@ ClassMethod GetListPosition(
     Return $ListGet(Property, Position)
 }
 
+Query StatsBy(
+	FileId As %Integer,
+	StatsOn As %String) As %SQLQuery(ROWSPEC = "ID:%Integer,FileId:%Integer,StatsOn:%String,Key:%String,Hit:%Integer,Size:%Integer,TypeJSON:%String") [ SqlProc ]
+{
+SELECT ID, FileId, StatsOn, Key, Hit, Size, TypeJSON
+FROM dc_journalindexer_data.Stats
+WHERE FileId = :FileId
+AND StatsOn = :StatsOn
+ORDER BY Size DESC
+}
+
 ClassMethod FormatString(Property As %String) As %String [ SqlProc ]
 {
     Return ##class(%Utility).FormatString(Property)

@@ -91,19 +91,99 @@ ClassMethod GetJournalFiles(Output sc As %Status) As %DynamicArray
     Return array
 }
 
+ClassMethod SetStatsInBuffer(
+	Record As %SYS.Journal.SetKillRecord,
+	ByRef stats As %Binary) As %Status
+{
+
+    /// Compute the record size
+    /// The logic has been copied from %CSP.UI.System.OpenJournalPane.cls
+    Set curlen = $zu(78,42,Record.Address)
+    Set size = Record.Address + curlen -(stats("prevaddr") + stats("prevlen"))
+    Set stats("prevaddr") = Record.Address, stats("prevlen") = curlen
+
+    Return:'Record.%IsA("%SYS.Journal.SetKillRecord") $$$OK
+
+    If size '> 0 Quit $$$OK
+    
+    Set node = $Piece(Record.GlobalReference, "(", 1)
+
+    Set key3 = "Type"
+
+    For keys = $Lb("gbl", node), $Lb("pid", Record.ProcessID), $Lb("db", Record.DatabaseName), $Lb("jrn", "Total") {
+        
+        Set key1 = $Li(keys, 1), key2 = $Li(keys, 2)
+
+        If '$Data(stats(key1, key2), data) Set data = $lb(0,0)
+        If '$Data(stats(key1, key2, key3), types) Set types = $lb(0,0)
+    
+        Set $Li(data, 1) = 1 + $Lg(data, 1), 
+            $Li(data, 2) = size + $Lg(data, 2), 
+            $Li(types, Record.Type ) = 1 + $Lg(types, Record.Type)
+        
+        Set stats(key1, key2) = data, stats(key1, key2, key3) = types
+    }
+
+    Return $$$OK
+}
+
+ClassMethod SaveStats(
+	JournalID As %Integer,
+	ByRef statsData) As %Status
+{
+    Set sc = $$$OK, node="statsData", statsOn = ""
+
+    For {
+        Set statsOn = $Order(statsData(statsOn), 1)
+        Quit:statsOn=""
+
+        Set key = ""
+        For  {
+            Set key = $Order(statsData(statsOn, key), 1, data)
+            Quit:key=""
+
+            Set stat = ##class(dc.journalindexer.data.Stats).%New()
+            Set stat.StatsOn = statsOn
+            Set stat.Key = key
+            Set stat.FileId = JournalID
+            Set stat.Hit = $ListGet(data, 1)
+            Set stat.Size = $ListGet(data, 2)
+
+            If $Data(statsData(statsOn, key, "Type"), types) Do AlimType
+
+            Set sc = $$$ADDSC(sc, stat.%Save())
+        }
+    }
+    
+    ;Merge ^dc.journalindexer.data.Stats(JournalID) = statsData
+    
+    Return sc
+
+AlimType
+    For i=1:1:$ListLength(types) {
+        Set item = $ListGet(types, i)
+        Continue:item=""
+        Set typeName = ##class(%Library.JournalRecordType).LogicalToDisplay(i)
+        Do stat.Type.SetAt(item, typeName)
+    }
+    Quit
+}
+
 ClassMethod ClearAll()
 {
     Do ##class(dc.journalindexer.data.BitSetRecord).%KillExtent()
     Do ##class(dc.journalindexer.data.SetKillRecord).%KillExtent()
     Do ##class(dc.journalindexer.data.Record).%KillExtent()
     Do ##class(dc.journalindexer.data.File).%KillExtent()
+    Do ##class(dc.journalindexer.data.Stats).%KillExtent()
     
     Do ##class(dc.journalindexer.data.BitSetRecord).%PurgeIndices()
     Do ##class(dc.journalindexer.data.SetKillRecord).%PurgeIndices()
     Do ##class(dc.journalindexer.data.Record).%PurgeIndices()
     Do ##class(dc.journalindexer.data.File).%PurgeIndices()
+    Do ##class(dc.journalindexer.data.Stats).%PurgeIndices()
 
-    Kill ^IRIS.Temp.data.RecordI, ^IRIS.Temp.data.RecordD
+    Kill ^IRIS.Temp.data.RecordI, ^IRIS.Temp.data.RecordD, ^dc.journalindexer.data.Stats
 
     Quit
 }
