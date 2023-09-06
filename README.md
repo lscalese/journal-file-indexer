@@ -14,9 +14,19 @@ The log file search functionality integrated into the management portal is curre
 
 ## Release note
 
-**Version 0.2.0**
+See progression on this [GitHub project DashBoard](https://github.com/users/lscalese/projects/2/views/6)
 
-See progression on this [GitHub project DashBoard](https://github.com/users/lscalese/projects/2/views/5)
+**Version 0.3.0**
+
+New features:
+
+ * Stats Size and counter by pid, database, global, journal record type.
+
+Improvements:
+
+ * Command line tools are gathered in ^JRNINDEXER routine.  
+
+**Version 0.2.0**
 
 New features: 
  
@@ -55,18 +65,37 @@ docker-compose up -d
 zpm "test journal-indexer"
 ```
 
-## Usage
+## Usage with command line tools
+
+All tools are gathered in routine ^JRNINDEXER
+
+```objectscript
+Do ^JRNINDEXER
+```
+
+```
+                              Journal File Indexer
+                              --------------------
+
+ 1) Show list of indexed journal files.
+ 2) Navigate.
+ 3) Search (list view).
+ 4) Search (detail view).
+ 5) Index a journal file in database.
+ 6) Show stats.
+
+(Q)uit or (#) Menu item => 
+```
 
 ### Store data from a journal file in database
 
-#### Using a wizard in the terminal  
-  
-```objectscript
-Do ##class(dc.journalindexer.services.Indexer).RunIndex()
-```
+Select option 5 and choose your journal file to index.  
+Typing `?` display the list of journal on this system and just type the number to start indexing.  
+To index a journal file from another system simply type the full path.  
 
-Type the path of a journal file or `?` to show list of journal files on this system:
-  
+**Note:** *If journal file are zipped either `/usr/irissys/mgr/journal/20230805.004` or `/usr/irissys/mgr/journal/20230805.004z` work as well. No matter about the suffix `z`.*  
+
+
 ```
 Journal file path (? help, q quit): ?
   1) /usr/irissys/mgr/journal/20230805.003
@@ -74,37 +103,26 @@ Journal file path (? help, q quit): ?
   3) /usr/irissys/mgr/journal/20230806.001
   4) /usr/irissys/mgr/journal/20230807.001
   5) /usr/irissys/mgr/journal/20230808.001
-Journal file path (? help, q quit): 2
-Apply filter routine ^JRNFILT (Y)es or (N)o  default:(No) ? 
-```
-  
-Then type a path or just a number related to a journal file, typing `2` is similar to `/usr/irissys/mgr/journal/20230805.004`:
+Journal file path (? help, q quit): 64
 
-If the routine `^JRNFILT` exists, you can use it to filter journal entries to index. This message is not show if the routine does not exist.  
-  
-```
-Journal file path (? help, q quit): 2
-Start read journal    17087424 / 17087424  
-FlushBuffer...
-BuildIndices...
-Delete old journal ...
-OK
-```
+Apply filter routine ^JRNFILT (Y)es or (N)o  default:(No) ?  
 
-**Note:** *If journal file are zipped either `/usr/irissys/mgr/journal/20230805.004` or `/usr/irissys/mgr/journal/20230805.004z` work as well. No matter about the suffix `z`.*  
+Index process started Type (P)ause, (R)esume, (C)ancel.
+ * File Validation /usr/irissys/mgr/journal/20230808.001z exists.
+ * File Validation /usr/irissys/mgr/journal/20230808.001z is a valid journal file.
+ * Stop Journaling 
+ * Starting load journal file ...        484152 / 484152  
+ * Flush Flush Buffer ...
+ * Build Indices ...
+ * Delete old journal ...
+ * Restore journal state ...
+ * ENDED with status : OK
 
-
-#### Programmatically
-  
-```objectscript
-Set sc = ##class(dc.journalindexer.services.Indexer).Index("/usr/irissys/mgr/journal/20230805.004", "20230805.004", "")
+                                Press <any key>
 ```
 
-The first argument is the path of the journal file to store in database.  
-The second is optional, this is the name of the journal file (by default: `##class(%File).GetFilename(JournalFile)`).  
-The third is also optional, this is the ressource name if you would like to wake up process with `$SYSTEM.Event`. It's used by `RunIndex` to show the progression.  
-See the [official documentation](https://docs.intersystems.com/latest/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&PRIVATE=1&CLASSNAME=%25SYSTEM.Event) for more information about `$SYSTEM.Event`.  
-
+**Note:** If the routine `^JRNFILT` exists, you can use it to filter journal entries to index. This message is not show if the routine does not exist.  
+It's pretty similar to [journal restore](https://docs.intersystems.com/iris20232/csp/docbook/DocBook.UI.Page.cls?KEY=GCDI_journal#GCDI_journal_util_ZJRNFILT) but here, the process index or not depending the value of `restmode`.
 
 #### About the storage
 
@@ -120,32 +138,23 @@ Yon can increase or decrease this value with this config :
 Do ##class(dc.journalindexer.services.Config).SetConfig("MaxJournalRetention", 5)
 ```
 
+
+#### Programmatically
+  
+```objectscript
+Set sc = ##class(dc.journalindexer.services.Indexer).Index("/usr/irissys/mgr/journal/20230805.004", "20230805.004", "")
+```
+
+The first argument is the path of the journal file to store in database.  
+The second is optional, this is the name of the journal file (by default: `##class(%File).GetFilename(JournalFile)`).  
+The third is also optional, this is the ressource name if you would like to wake up process with `$SYSTEM.Event`. It's used by `RunIndex` to show the progression.  
+See the [official documentation](https://docs.intersystems.com/latest/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&PRIVATE=1&CLASSNAME=%25SYSTEM.Event) for more information about `$SYSTEM.Event`.  
+
 ### View indexed data
 
-### Command line tool
+Data can be displayed from `^JRNINDEXER` option 2, 3 or 4.  
 
-A command line tool is available to navigate in indexed journal file data and also make a search.  
-
-```objectscript
-Do ##class(dc.journalindexer.services.Search).SearchInIndexedJournal()
-```
-
-```
-                        Search in indexed journal files
-                        -------------------------------
- 1) Show list of indexed journal files.
- 2) Navigate.
- 3) Search (list view).
- 4) Search (detail view).
- 5) Index a journal file in database.
-
-(Q)uit or (#) Menu item =>
-```
-
-If you select the option 2, 3, or 4, you have to select an indexed journal file.  
-The option 5 is just a shortcut to `Do ##class(dc.journalindexer.services.Indexer).RunIndex()`.  
-
-Example with the option 2 Navigate: 
+Option 2 allows to navigate in indexed journal file, ex:
 
 ```
                              Indexed journal files
@@ -177,7 +186,7 @@ New Value:          $lb(,5,5,47,42)
 (P)revious (Q)uit (N)ext (or <any other key>).
 ```
 
-If you perform a search (option 3 or 4), you can specify a filter in JSON Format.  
+With the options 3 and 4 allow to perform a search, a filter in JSON format can be specifiy (optional), ex:
 
 ```
 Put your filter in JSON format, empty string allowed (see documentation for more details). 
@@ -285,17 +294,58 @@ AND GlobalName = '^dc.journalindexer.testI'
 AND FOR SOME %ELEMENT(Subscripts) (%VALUE = ' AK' AND %KEY = 2)
 ```
 
+### Show stats
 
-## About Unit Tests
+Some stats are available: 
 
-### Indexer Process
+ * Size by global
+ * Size by database
+ * Size by process id
 
-The unit tests cover the `Index`, `DeleteIndexedJournalData` methods.  
-A journal file is generated with 10000 SET and 10000 KILL on the global `^dc.journalindexer.testD`.  
+For each, the number of journal entries and also the number of journal entries grouped by type (SET,KILL,ZKILL,...).
 
-The interactive menu (method `RunIndex`) is also covered using Job, input\output files and `$SYSTEM.Event` utils (syntax `Job classmethod:(::inputFile:outputFile)` )
+Stats can bel displayed using the routine `Do ^JRNINDEXER` option 6.
 
-
-```objectscript
-zpm "test journal-indexer"
 ```
+              Top Size by Global unit_test_Test01IndexFile [ 17 ]
+              ---------------------------------------------------
+  1) Global ^["^^/usr/irissys/mgr/irisapp/data/"]dc.journalindexer.testI
+     Size:     156064 Count: 2000 (SET:2000,blkhdr:0,dirtab:0)
+  2) Global ^["^^/usr/irissys/mgr/irisapp/data/"]dc.journalindexer.testD
+     Size:     131504 Count: 1001 (KILL:1,SET:1000,blkhdr:0,dirtab:0)
+  3) Global ^["^^/usr/irissys/mgr/irisapp/data/"]rINDEXSQL
+     Size:       4400 Count: 13 (KILL:1,SET:12,blkhdr:0,dirtab:0)
+  4) Global ^["^^/usr/irissys/mgr/"]SYS
+     Size:       2308 Count: 23 (KILL:7,SET:15,ZKILL:1,blkhdr:0,dirtab:0)
+  5) Global ^["^^/usr/irissys/mgr/irisaudit/"]IRIS.AuditD
+     Size:       1776 Count: 8 (SET:8,blkhdr:0,dirtab:0)
+
+ (G)lobal stats, (P)rocess ID stats, (D)atabase stats (Q)uit => 
+
+             Top Size by Process ID unit_test_Test01IndexFile [ 17 ]
+            -------------------------------------------------------
+  1) Process ID 17108
+     Size:     292616 Count: 3016 (KILL:2,SET:3014,blkhdr:0,dirtab:0)
+  2) Process ID 46978
+     Size:       2308 Count: 23 (KILL:7,SET:15,ZKILL:1,blkhdr:0,dirtab:0)
+  3) Process ID 46979
+     Size:        376 Count: 2 (SET:2,blkhdr:0,dirtab:0)
+  4) Process ID 46981
+     Size:        376 Count: 2 (SET:2,blkhdr:0,dirtab:0)
+  5) Process ID 46982
+     Size:        376 Count: 2 (SET:2,blkhdr:0,dirtab:0)
+
+ (G)lobal stats, (P)rocess ID stats, (D)atabase stats (Q)uit => 
+
+             Top Size by Database unit_test_Test01IndexFile [ 17 ]
+             -----------------------------------------------------
+  1) Database /usr/irissys/mgr/irisapp/data/
+     Size:     291968 Count: 3014 (KILL:2,SET:3012,blkhdr:0,dirtab:0)
+  2) Database /usr/irissys/mgr/
+     Size:       2308 Count: 23 (KILL:7,SET:15,ZKILL:1,blkhdr:0,dirtab:0)
+  3) Database /usr/irissys/mgr/irisaudit/
+     Size:       1776 Count: 8 (SET:8,blkhdr:0,dirtab:0)
+
+ (G)lobal stats, (P)rocess ID stats, (D)atabase stats (Q)uit => 
+```
+
