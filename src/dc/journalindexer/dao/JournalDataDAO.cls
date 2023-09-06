@@ -131,7 +131,7 @@ ClassMethod SaveStats(
 	JournalID As %Integer,
 	ByRef statsData) As %Status
 {
-    Set sc = $$$OK, node="statsData", statsOn = ""
+    Set sc = $$$OK, statsOn = ""
 
     For {
         Set statsOn = $Order(statsData(statsOn), 1)
