@@ -27,14 +27,16 @@ ClassMethod buildTypeJSON(
 	Output Type As %DynamicObject) As %String
 {
     Set type = {}
-    If '$Data(^dc.journalindexer.data.StatsD(StatsID, "Type")) Quit ""
+    If '$Data(^IRIS.Temp.data.StatsD(StatsID, "Type")) Quit ""
     
     Set typeName = ""
     For  {
-        Set typeName = $Order(^dc.journalindexer.data.StatsD(StatsID, "Type", typeName ), 1, value)
+        Set typeName = $Order(^IRIS.Temp.data.StatsD(StatsID, "Type", typeName ), 1, value)
         Quit:typeName=""
         Do type.%Set(typeName, value)
     }
+
+    Quit type.%ToJSON()
     
     If '$Quit Quit ""
 
