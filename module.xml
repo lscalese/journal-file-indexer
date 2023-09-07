@@ -3,11 +3,12 @@
   <Document name="journal-indexer.ZPM">
     <Module>
       <Name>journal-indexer</Name>
-      <Version>0.3.0</Version>
+      <Version>0.3.1</Version>
       <Description></Description>
       <Packaging>module</Packaging>
       <SourcesRoot>src</SourcesRoot>
       <Resource Name="dc.journalindexer.PKG"/>
+      <Resource Name="JRNINDEXER.MAC" Directory="dc/journalindexer"/>
       <Invoke Class="dc.journalindexer.services.Config" Method="Initialize"></Invoke>
       <UnitTest Name="/" Package="tests.dc.journalindexer" Phase="test"/>
     </Module>
