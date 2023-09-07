@@ -73,11 +73,11 @@ Storage Default
 <Structure>subnode</Structure>
 <Subscript>"Type"</Subscript>
 </Data>
-<DataLocation>^dc.journalindexer.data.StatsD</DataLocation>
+<DataLocation>^IRIS.Temp.data.StatsD</DataLocation>
 <DefaultData>StatsDefaultData</DefaultData>
-<IdLocation>^dc.journalindexer.data.StatsD</IdLocation>
-<IndexLocation>^dc.journalindexer.data.StatsI</IndexLocation>
-<StreamLocation>^dc.journalindexer.data.StatsS</StreamLocation>
+<IdLocation>^IRIS.Temp.data.ata.StatsD</IdLocation>
+<IndexLocation>^IRIS.Temp.data.StatsI</IndexLocation>
+<StreamLocation>^IRIS.Temp.data.StatsS</StreamLocation>
 <Type>%Storage.Persistent</Type>
 }
 
