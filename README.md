@@ -14,6 +14,23 @@ The log file search functionality integrated into the management portal is curre
 
 ## Release note
 
+**Version 0.4.0**
+
+New features:
+
+ * 
+ * Command line wizard to create a search filter.
+
+Improvements:
+
+ * Calculated property Subscripts size in dc.journalindexer.data.SetKillRecord  
+ * Storage optimization for persistent class dc.journalindexer.data.SetKillRecord.    
+   Property GlobalName is now calculated from GlobalNode.  
+   Database path is now in another table and SetKillRecord keep only a referece.  
+   DatabaseName is a calculated property.  
+   GlobalReference is now a calculated property from DatabaseName and GlobalNode.  
+
+
 See progression on this [GitHub project DashBoard](https://github.com/users/lscalese/projects/2/views/6)
 
 **Version 0.3.0**
@@ -129,6 +146,13 @@ It's pretty similar to [journal restore](https://docs.intersystems.com/iris20232
 We consider these data are temporary.  
 The usual use case is to index a journal file, perform searches and then delete them.  
 So, all data are physically stored in IRISTEMP to avoid indexing a journal file generate a new journal file ...
+However, If you prefer store data in another database, you create a global mapping in %ALL namespace with these globals:
+
+ * ^IRIS.Temp.data.Record*
+ * ^IRIS.Temp.data.Stats*
+ * ^IRIS.Temp.data.File*
+
+
 By default, the process keep maximum 5 indexed journal files.  
 If 6th is indexed the oldest is automatically removed from the database.  
 
@@ -186,14 +210,30 @@ New Value:          $lb(,5,5,47,42)
 (P)revious (Q)uit (N)ext (or <any other key>).
 ```
 
-With the options 3 and 4 allow to perform a search, a filter in JSON format can be specifiy (optional), ex:
+With the options 3 and 4 allow to perform a search, a filter can be specified (optional)
 
 ```
-Put your filter in JSON format, empty string allowed (see documentation for more details). 
-    ex : {"GlobalName":{"Value":"^SYS"},"Subscripts":{"Value":"HistoryD","Position":2}}
+                                 Filter Wizard
 
-Filter => {"GlobalName": {"Value":"^dc.journalindexer.testI"}, "Subscripts": {"Value": " AK","Position":2}}
+	1) Set database filter.
+	2) Set global name filter.
+	3) Set process id filter.
 
+	4) Set Address range filter.
+	5) Set TimeStamp range filter.
+	6) Set Journal type entry filter.
+	7) Set Global Subscripts Size filter.
+
+	8) Set Subscripts filter by position.
+
+  Current filter : {"DatabaseName":{"Value":"/usr/irissys/mgr/irisapp/data/"},"GlobalName":{"Value":"^tmp.lsc"}}
+
+(Q)uit (C)ancel (V)iew current Filter (X)Clear Filter (#)Menu item => 
+
+```
+Use the wizard to set your filter and then type `q`.  
+
+```
 --------------------------------------------------------------------------------
 File: unit_test_Test01IndexFile  First Address: 131312          Last Address: 484076
 --------------------------------------------------------------------------------
@@ -348,4 +388,63 @@ Stats can bel displayed using the routine `Do ^JRNINDEXER` option 6.
 
  (G)lobal stats, (P)rocess ID stats, (D)atabase stats (Q)uit => 
 ```
+
+### Restore data from indexed journal.
+
+There is a feature to restore data (OldValue or NewValue) from the indexed journal.  
+So, to avoid any problem (data override...) data are not restored directory to the original global.  
+It means to restore data for a global from the indexed journal you have to choice another non existing global to redirect the restore.
+
+Example: 
+
+If we restore from indexed journal:
+```
+^MyData(1)="value 1"
+^MyData(2)="value 2"
+^MyData(3)="value 3"
+```
+And we choose the global `^Restore.MyData`, the restore result will be: 
+
+```
+^Restore.MyData(1)="value 1"
+^Restore.MyData(2)="value 2"
+^Restore.MyData(3)="value 3"
+```
+
+The global `^MyData` won't be modified by the restore process.  
+If the result of the restore is correct `^Restore.MyData` you can do it by yourself with a Merge command.  
+
+To start a restore use the menu item `7) Restore data.` from `^JRNINDEXER` and follow the wizard.  
+Select the journal file, select your filter (with the filter wizard).  
+
+```
+                       Restore data from indexed journal.
+                       ----------------------------------
+
+ Filter : {"DatabaseName":{"Value":"/usr/irissys/mgr/irisapp/data/"},"GlobalName":{"Value":"^MyData"}}
+
+ Restore from Indexed journal file : unit_test_Test01IndexFile [25]
+
+ Restore (N)ew value or (O)ld value ? (Default: Old value) => N
+
+ ! Data are not directly restored to the original global to prevent override !
+ ! Please provide a non existing global name to reste data !
+
+ Restore redirect to global => ^Restore.MyData
+
+Test only (Y)es (N)o (simulate the restore without SET operation) (Default: No) => No
+Verbose (Y)es (N)o (Write on current device all operations) (Default: No) => No
+
+ The global ^MyData in indexed journal unit_test_Test01IndexFile will be restored in global ^Restore.MyData
+
+Confirm start restore (Y)es (N)o (Default: No) => Yes
+Start restore ...
+SET:       2000    ERR:          1
+Cannot restore 1 record(s) because the journal entry has no NewValue
+
+ Restore finished with status: OK
+
+```
+
+If a journal entry has no value to restore, a warning message can be displayed with the number of skipped indexed journal entries.  
 
