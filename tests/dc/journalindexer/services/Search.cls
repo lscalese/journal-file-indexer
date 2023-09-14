@@ -12,7 +12,8 @@ Method OnBeforeAllTests() As %Status
     Set sc = $$$OK
     Do $SYSTEM.Process.SynchCommit(1)
 
-    Set sc = ..GenerateJournalFile(.JournalFile), ..JournalFile = JournalFile
+    Set sc = ##class(tests.dc.journalindexer.services.Common).GenerateJournalFile(.JournalFile), 
+        ..JournalFile = JournalFile
 
     Quit sc
 }
@@ -143,12 +144,12 @@ Method Test020Menu() As %Status
 
     Do file.Write("3")      ; Search (list view).
     Do file.WriteLine("1")  ; Select the first file.
-    Do file.WriteLine("")   ; Empty filter
+    Do file.WriteLine("q")   ; Empty filter
     Do file.Write("q")      ; Quit, return to main menu.
 
     Do file.Write("4")      ; Search (list view).
     Do file.WriteLine("1")  ; Select the first file.
-    Do file.WriteLine("")   ; Empty filter
+    Do file.WriteLine("q")   ; Empty filter
     Do file.Write("q")      ; Quit, return to main menu.
 
     Do file.Write("q")      ; Quit.
@@ -200,36 +201,6 @@ ClassMethod UnitTestMenu(Notify As %String) As %Status [ Internal ]
 {
     Set sc = ##class(dc.journalindexer.services.Search).SearchInIndexedJournal()
     Do $SYSTEM.Event.Signal(Notify,sc)
-    Quit sc
-}
-
-ClassMethod GenerateJournalFile(Output JournalFile As %String) As %Status
-{
-    Set sc = $$$OK
-    
-    $$$QuitOnError(##class(%SYS.Journal.System).RollToNextFile(1, .JournalFile))
-    
-    Set n = ..#NSETKILL
-    For i=1:1:n {
-        Set data(i) = $ListBuild(##class(%PopulateUtils).LastName(), 
-                        ##class(%PopulateUtils).FirstName(), 
-                        ##class(%PopulateUtils).Street(),
-                        ##class(%PopulateUtils).City(),
-                        ##class(%PopulateUtils).USZip(),
-                        ##class(%PopulateUtils).USState(),
-                        ##class(%PopulateUtils).SSN(),
-                        $Random(1000))
-
-        Set indices("USStateI", " " _ $List(data(i), 6), i) = ""
-        Set indices("SSNI", " " _ $List(data(i), 7), i) = ""
-    }
-    
-    TSTART
-    Merge ^dc.journalindexer.testD = data, ^dc.journalindexer.testI = indices
-    TCOMMIT
-
-    Do ##class(%SYS.Journal.System).RollToNextFile(1)
-    
     Quit sc
 }
 
