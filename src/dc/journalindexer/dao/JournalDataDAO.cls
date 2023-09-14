@@ -206,7 +206,7 @@ ClassMethod ClearAll()
     Do ##class(dc.journalindexer.data.Stats).%PurgeIndices()
     Do ##class(dc.journalindexer.data.DB).%PurgeIndices()
 
-    Kill ^IRIS.Temp.data.RecordI, ^IRIS.Temp.data.RecordD, ^dc.journalindexer.data.Stats, ^IRIS.Temp.data.Distinct
+    Kill ^IRIS.Temp.data.RecordI, ^IRIS.Temp.data.RecordD, ^dc.journalindexer.data.Stats, ^IRIS.Temp.data.Distinct, ^IRIS.Temp.data.DBD, ^IRIS.Temp.data.DBI, ^IRIS.Temp.data.StatsD, ^IRIS.Temp.data.StatsI
 
     Quit
 }

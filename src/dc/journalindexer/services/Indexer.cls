@@ -234,13 +234,15 @@ ClassMethod Index(
         
         Do EventSignal
 
-        ; if $ZStorage is less than 1Gb, we flush when 80% of the process memory is reached.
-        ; if $ZStorage is greather than 1Gb, we force the limit before flush to 800Mb
-        Set limitBeforeFlush = $Select($zstorage > 1073741824: 1024**4, 1: $zstorage*1024) * .2
-
         Set startIndexId = $Get(^IRIS.Temp.data.RecordD, 0) + 1
         Set ^dc.journalindexer("startIndexId", $job) = startIndexId
         Set restmode = 1
+
+        Set startStorage = $ZStorage
+        ; Set a limit usage memory flus if less than 20% is available
+        Set limitBeforeFlush = startStorage * 0.2   
+        ; force a flush to 512 Mb used even if the available memory is greather than 20 %
+        If startStorage - (1024**2 * 512) > limitBeforeFlush Set limitBeforeFlush = startStorage - (1024**2 * 512)
         
         Set addr = 131072
         Set statsData("prevlen") = $zu(78,42,addr), statsData("prevaddr") = addr

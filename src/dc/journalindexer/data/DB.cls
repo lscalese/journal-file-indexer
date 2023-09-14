@@ -41,11 +41,11 @@ Storage Default
 <Value>DatabaseName</Value>
 </Value>
 </Data>
-<DataLocation>^dc.journalindexer.data.DBD</DataLocation>
+<DataLocation>^IRIS.Temp.data.DBD</DataLocation>
 <DefaultData>DBDefaultData</DefaultData>
-<IdLocation>^dc.journalindexer.data.DBD</IdLocation>
-<IndexLocation>^dc.journalindexer.data.DBI</IndexLocation>
-<StreamLocation>^dc.journalindexer.data.DBS</StreamLocation>
+<IdLocation>^IRIS.Temp.data.DBD</IdLocation>
+<IndexLocation>^IRIS.Temp.data.DBI</IndexLocation>
+<StreamLocation>^IRIS.Temp.data.DBS</StreamLocation>
 <Type>%Storage.Persistent</Type>
 }
 
