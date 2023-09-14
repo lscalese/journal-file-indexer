@@ -18,7 +18,7 @@ The log file search functionality integrated into the management portal is curre
 
 New features:
 
- * 
+ * Restore from indexed journal.  
  * Command line wizard to create a search filter.
 
 Improvements:
