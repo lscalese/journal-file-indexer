@@ -37,10 +37,8 @@ ClassMethod SetRecordInBuffer(
 
     If $Classname(Record) = "%SYS.Journal.SetKillRecord" {
         Do SetKillProperties
-        Set class = "~dc.journalindexer.data.SetKillRecord~"
     } ElseIf $Classname(Record) = "%SYS.Journal.BitSetRecord" {
         Do BitSetProperties
-        Set class = "~dc.journalindexer.data.SetKillRecord~dc.journalindexer.data.BitSetRecord~"
     }
 
     Set %zinstance(RecordId) = $ListBuild(class,Record.Address,Record.Type,Record.PrevAddress,Record.NextAddress,Record.TimeStamp,Record.InTransaction,Record.ProcessID,Record.JobID,Record.RemoteSystemID,Record.ECPSystemID,+FileId)
@@ -48,21 +46,25 @@ ClassMethod SetRecordInBuffer(
     Quit $$$OK
 
 SetKillProperties
+    Set Subscripts = "", class = "~dc.journalindexer.data.SetKillRecord~"
     For i=1:1:$QLENGTH(Record.GlobalNode) Set $List(Subscripts, i) = $QSubscript(Record.GlobalNode, i)
-    Set %zinstance(RecordId, "SetKillRecord") = $ListBuild(Record.ClusterSequence,Record.DatabaseName,Record.MirrorDatabaseName,Record.GlobalReference,Record.GlobalNode,Record.NumberOfValues,Record.NewValue,Record.OldValue,Record.Collation,$QSubScript(Record.GlobalNode,0),$Get(Subscripts))
+    ;$QSubScript(Record.GlobalNode,0)
+    Set %zinstance(RecordId, "SetKillRecord") = $ListBuild(Record.ClusterSequence,##class(dc.journalindexer.data.DB).GetId(Record.DatabaseName),Record.MirrorDatabaseName,Record.GlobalNode,Record.NumberOfValues,Record.NewValue,Record.OldValue,Record.Collation,$Get(Subscripts))
+    Set %zdistinct(+FileId,Record.DatabaseName,$QSubScript(Record.GlobalNode,0),Record.ProcessID) = ""
     Quit
 
 BitSetProperties
     Do SetKillProperties
-    Set %zinstance(RecordId, "BitSetRecord") = $ListBuild(Record.Position,Record.OldLength)
+    Set $List(%zinstance(RecordId, "SetKillRecord"), 10) = Record.Position
+    Set $List(%zinstance(RecordId, "SetKillRecord"), 11) = Record.OldLength
     Quit
 }
 
 ClassMethod FlushBuffer() As %Status
 {
     Quit:'$Data(%zinstance) $$$OK
-    Merge ^IRIS.Temp.data.RecordD = %zinstance
-    Kill %zinstance
+    Merge ^IRIS.Temp.data.RecordD = %zinstance, ^IRIS.Temp.data.Distinct = %zdistinct
+    Kill %zinstance, %zdistinct
     Quit $$$OK
 }
 
@@ -70,10 +72,8 @@ ClassMethod RebuildIndices(
 	startId As %Integer,
 	lastId As %Integer) As %Status
 {
-    Set sc = ##class(dc.journalindexer.data.Record).%BuildIndices($ListBuild("$Record","FileI", "ProcessID", "TimeStampI", "AddressI", "TypeI", "FileAddr"), 1, 0, 0, startId, lastId),
-        sc = $$$ADDSC(sc,##class(dc.journalindexer.data.SetKillRecord).%BuildIndices($ListBuild("$SetKillRecord", "GlobalNameI", "SubscriptsI"), 1, 0, 0, startId, lastId)),
-        sc = $$$ADDSC(sc,##class(dc.journalindexer.data.BitSetRecord).%BuildIndices($ListBuild("$BitSetRecord"), 1, 0, 0, startId, lastId))
-
+    Set sc = ##class(dc.journalindexer.data.Record).%BuildIndices($ListBuild("$Record","FileI", "ProcessID", "TimeStampI", "TypeI", "FileAddr"), 1, 0, 0, startId, lastId),
+        sc = $$$ADDSC(sc,##class(dc.journalindexer.data.SetKillRecord).%BuildIndices($ListBuild("$SetKillRecord", "GlobalNameI", "SubscriptsI","DatabaseI"), 1, 0, 0, startId, lastId))
     Quit sc
 }
 
@@ -169,21 +169,44 @@ AlimType
     Quit
 }
 
+ClassMethod GetDistinct(
+	PropertyName As %String,
+	FileId As %Integer = "",
+	DatabaseName As %String = "",
+	ProcessID As %Integer = "",
+	GlobalName As %String = "",
+	Output list As %List,
+	Output sc As %Status) As %DynamicArray
+{
+    Kill list
+    Set tResult = ##class(dc.journalindexer.dao.Queries).DistinctFunc(PropertyName,FileId,DatabaseName,GlobalName)
+	If tResult.%SQLCODE < 0 Set sc = $$$ERROR($$$SQLError, tResult.%SQLCODE, tResult.%Message) Quit ""
+    
+    While tResult.%Next(.sc) { Set $List(list,*+1) = tResult.%Get("DistinctField") }
+
+    If '$Quit Quit ""
+
+    Set ptr = 0, array = []
+    While $ListNext(list, ptr, value) { Do array.%Push(value) }
+
+    Quit array
+}
+
 ClassMethod ClearAll()
 {
-    Do ##class(dc.journalindexer.data.BitSetRecord).%KillExtent()
     Do ##class(dc.journalindexer.data.SetKillRecord).%KillExtent()
     Do ##class(dc.journalindexer.data.Record).%KillExtent()
     Do ##class(dc.journalindexer.data.File).%KillExtent()
     Do ##class(dc.journalindexer.data.Stats).%KillExtent()
+    Do ##class(dc.journalindexer.data.DB).%KillExtent()
     
-    Do ##class(dc.journalindexer.data.BitSetRecord).%PurgeIndices()
     Do ##class(dc.journalindexer.data.SetKillRecord).%PurgeIndices()
     Do ##class(dc.journalindexer.data.Record).%PurgeIndices()
     Do ##class(dc.journalindexer.data.File).%PurgeIndices()
     Do ##class(dc.journalindexer.data.Stats).%PurgeIndices()
+    Do ##class(dc.journalindexer.data.DB).%PurgeIndices()
 
-    Kill ^IRIS.Temp.data.RecordI, ^IRIS.Temp.data.RecordD, ^dc.journalindexer.data.Stats
+    Kill ^IRIS.Temp.data.RecordI, ^IRIS.Temp.data.RecordD, ^dc.journalindexer.data.Stats, ^IRIS.Temp.data.Distinct
 
     Quit
 }

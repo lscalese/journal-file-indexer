@@ -55,8 +55,6 @@ Index ProcessID On ProcessID [ Type = bitmap ];
 
 Index TimeStampI On TimeStamp;
 
-Index AddressI On Address [ Type = bitslice ];
-
 Index TypeI On Type [ Type = bitmap ];
 
 Index FileAddr On (File, Address) [ Unique ];

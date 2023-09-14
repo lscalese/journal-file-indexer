@@ -36,8 +36,6 @@ ClassMethod buildTypeJSON(
         Do type.%Set(typeName, value)
     }
 
-    Quit type.%ToJSON()
-    
     If '$Quit Quit ""
 
     Quit type.%ToJSON()

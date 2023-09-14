@@ -1,14 +1,15 @@
 ROUTINE JRNINDEXER
 #include %occStatus
+#include %occMessages
+#include journalindexer
 JRNINDEXER()
-
-
+    New
     #define LOWER(%a)           $zcvt(%a,"L")
     #Define ZLEFTALIGN(%1,%2)   $Reverse($Justify($Reverse(%1),%2))
 
     #dim JournalFiles As %DynamicArray
     #dim iter As %Iterator.Array
-    Set sc = $$$OK, jrn="", detailView = $$$NO
+    Set sc = $$$OK, jrn="", detailView = $$$NO, %zFilter = {}
 
     Try {
 
@@ -22,6 +23,7 @@ JRNINDEXER()
             Write !," 4) Search (detail view)."
             Write !," 5) Index a journal file in database."
             Write !," 6) Show stats."
+            Write !," 7) Restore data."
             Write !,!, "(Q)uit or (#) Menu item => "
 
             Read *Item Set Item = $Char(Item)
@@ -45,6 +47,7 @@ ProcessSelect
     If +Item = 4 Set detailView = $$$YES Do ShowRecords
     If +Item = 5 Do ##class(dc.journalindexer.services.Indexer).RunIndex() Write !,##class(%Utility).Center("Press <any key>") Read *x
     If +Item = 6 Do SelectAndShowStats
+    If +Item = 7 Do Restore
     Quit
 
 ListJournalIndexed
@@ -108,27 +111,8 @@ ShowRecords
 
     If '$Data(jrn($p(x," ")),FileInfo) Write !,"Item ", $p(x," "), " not found." Quit
 
-    
-    Set filter = {}
-    Do {
-        Set stop = $$$YES
-
-        Write !,!,"Put your filter in JSON format, empty string allowed (see documentation for more details). "
-        Write !, "    ex : ", {"GlobalName":{"Value":"^SYS"},"Subscripts":{"Value":"HistoryD","Position":2}}.%ToJSON()
-        Write !,!,"Filter => " Read filterStr
-
-        Quit:filterStr=""
-
-        Try {
-            Set filter = {}.%FromJSON(filterStr)
-        } Catch(ex) { 
-            Do $SYSTEM.Status.DisplayError(ex.AsStatus())
-            Set stop = $$$NO
-        }
-        
-    } While 'stop
-    
-    
+    Set outWizard = $$FilterWizard($ListGet(FileInfo,1))
+    Set filter = $Select($IsObject(outWizard):outWizard,1:{})
 
     Set filter.File = {"Value" : ($ListGet(FileInfo,1))}
 
@@ -164,8 +148,6 @@ ShowRecords
     }
 
     If x'=$a("q") Write !,"  End Of Data.  Press <any key>." Read *x Quit
-    
-
     kill tResult
     Quit
 
@@ -266,3 +248,112 @@ ShowStats(typeStats="gbl")
     }
     
     Quit 
+ 
+Restore
+    Do ListJournalIndexed
+
+    Write !,!, "Select a source indexed journal file to restore data # => " Read x
+    Quit:x=""
+
+    If '$Data(jrn($p(x," ")),FileInfo) Write !,"Item ", $p(x," "), " not found." Hang 1 Quit
+
+    Do {
+        Set filter = $$FilterWizard($lg(FileInfo,1))
+
+        Write #,##class(%Utility).Center("Restore data from indexed journal.")
+        Write !,##class(%Utility).Center("----------------------------------"),!,!
+        
+
+        Write:$IsObject($Get(filter)) " Filter : ", filter.%ToJSON(),!,!
+
+        If '$IsObject(filter) Quit
+        If filter.%IsDefined("GlobalName") Quit
+
+        Write !,!, "! A filter to the GlobalName is mandatory for this operation!"
+        Write !,##class(%Utility).Center("<press any key>") Read *x
+
+    } While 1
+    
+    If '$IsObject(filter) Quit
+
+    Write " Restore from Indexed journal file : ", $ListGet(FileInfo,2)," [",$ListGet(FileInfo,1),"]",!,!
+
+    Write " Restore (N)ew value or (O)ld value ? (Default: Old value) => "
+
+    Read x Set x = $$$LOWER($Extract(x)) If x = "" Set x = "o" Write "O"
+    
+    If x '= "o", x '= "n" Write !,"BAD VALUE" Hang 2 Quit
+    Set restoreValue = $s(x="n":"newvalue",1:"oldvalue")
+
+    Write !,!," ! Data are not directly restored to the original global to prevent override !"
+    Write !," ! Please provide a non existing global name to reste data !"
+    
+    Write !,!," Restore redirect to global => "
+    Read x if x = "" Write !,"BAD VALUE" Hang 2 Quit
+
+    Set redirectGbl = x 
+    Set:$Extract(redirectGbl)'="^" redirectGbl = "^"_redirectGbl
+
+    Write !,!, "Test only (Y)es (N)o (simulate the restore without SET operation) (Default: No) => "
+    Read testOnly Set testOnly = $$$LOWER($Extract(testOnly)) Set testOnly = $s(testOnly="y":1,1:0)
+
+    Write !, "Verbose (Y)es (N)o (Write on current device all operations) (Default: No) => "
+    Read verbose Set verbose = $$$LOWER($Extract(verbose)) Set verbose = $s(verbose="y":1,1:0)
+
+    Write !,!, $$$FormatText(" The global %1 in indexed journal %2 will be restored in global %3",filter.GlobalName.Value,$ListGet(FileInfo,2),redirectGbl)
+    Write !,!, "Confirm start restore (Y)es (N)o (Default: No) => "
+    Read x Set x = $$$LOWER($e(x))
+
+    If x'="y" Write !,"CANCEL ..." HANG 1 Quit
+    Try {
+        Set filter.File={"Value":($ListGet(FileInfo,1))}
+        Set sc = $$RunJobRestore(filter,restoreValue,redirectGbl,testOnly,verbose)
+        If $$$ISERR(sc) $$$ThrowStatus(sc)
+    }Catch ex {
+        Do $SYSTEM.Status.DisplayError(ex.AsStatus())
+    }
+    Write !,!,##class(%Utility).Center("<press any key>") Read *z Kill z
+    Quit
+
+FilterWizard(FileId="")
+    Quit $$^JRNINDEXERFW(FileId)
+
+RunJobRestore(filter,restoreValue,redirectGbl,testOnly,verbose)
+    New (filter,restoreValue,redirectGbl,testOnly,verbose)
+    Set resourceName = "JRNINDEXERRESTORE"_$JOB
+    Do:$SYSTEM.Event.Defined(resourceName) $SYSTEM.Event.Clear(resourceName), $SYSTEM.Event.Delete(resourceName)
+    Do $SYSTEM.Event.Create(resourceName)
+    Write !,"Start restore ...",!
+    Job ##class(dc.journalindexer.services.Data).RestoreGlobal(filter.%ToJSON(),restoreValue,redirectGbl,"",0,resourceName,testOnly,verbose)
+    Set childJob = $ZChild, (nSet,nErr,prevSize) = 0
+    For  {
+        Set returnList = $SYSTEM.Event.WaitMsg(resourceName,1)
+        Set returnState = $ListGet(returnList, 1)
+
+        If returnState = -1 Set sc = $$$ERROR($$$GeneralError, "Ressource deleted.") Quit
+        If returnState = 0, '##class(%SYS.ProcessQuery).%ExistsId(childJob) Set sc = $$$ERROR($$$GeneralError, "Restore process not found.") Quit 
+
+        Set msg = $ListGet(returnList, 2)
+        If msg '= "", $ListValid(msg) {
+            Set type = $lg(msg,1) Set:type'="" cpt(type) = $Get(cpt(type),0) + 1
+            If type = "END" {
+                Set sc = $Lg(msg,2)
+                Write !," Restore finished with status: ", $Select($$$ISOK(sc):"OK",1:$SYSTEM.Status.GetOneErrorText(sc))
+                Quit
+            } ElseIf (type = "MSG") {
+                Write !, $Lg(msg,2),!
+                Set prevSize = 0
+                Continue
+            }
+            If 'verbose { ; display only the progression
+                For i=1:1:prevSize Write $c(8,32,8)
+                Set wMsg = "SET: " _ $j($Get(cpt("SET"),0),10) _ "    " _ "ERR: " _ $j($Get(cpt("ERR"),0),10)
+                Write wMsg
+                Set prevSize = $Length(wMsg)
+            } Else {
+                Write !,type," ", $Lg(msg,2), " = ", $Lg(msg,3)
+            }
+        }
+    }
+    Do $SYSTEM.Event.Clear(resourceName), $SYSTEM.Event.Delete(resourceName)
+    Quit sc

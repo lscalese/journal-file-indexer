@@ -21,7 +21,96 @@ Query GetLastAddress(
 SELECT TOP 1 ID, Address INTO :ID,:LastAddress FROM dc_journalindexer_data.Record WHERE TimeStamp <= :TimeStamp AND FILE = :JournalFile ORDER BY ID DESC
 }
 
-Query SearchRecord(Filter As %DynamicObject) As %Query(CONTAINID = 1, ROWSPEC = "ID:%Integer,File:%String,TypeName:%String,TimeStamp:%TimeStamp,InTransaction:%Boolean,ProcessID:%Integer,DatabaseName:%String,NumberOfValues:%Integer,GlobalNode:%String,Address:%Integer,FormattedOldValue:%String,FormattedNewValue:%String") [ SqlProc ]
+Query StatsBy(
+	FileId As %Integer,
+	StatsOn As %String) As %SQLQuery(ROWSPEC = "ID:%Integer,FileId:%Integer,StatsOn:%String,Key:%String,Hit:%Integer,Size:%Integer,TypeJSON:%String") [ SqlProc ]
+{
+SELECT ID, FileId, StatsOn, Key, Hit, Size, TypeJSON
+FROM dc_journalindexer_data.Stats
+WHERE FileId = :FileId
+AND StatsOn = :StatsOn
+ORDER BY Size DESC
+}
+
+Query Distinct(
+	Field As %String,
+	FileId As %Integer,
+	DatabaseName As %String = "",
+	GlobalName As %String = "") As %Query(ROWSPEC = "DistinctField:%String") [ SqlProc ]
+{
+}
+
+ClassMethod DistinctExecute(
+	ByRef qHandle As %Binary,
+	Field As %String,
+	FileId As %Integer,
+	DatabaseName As %String = "",
+	GlobalName As %String = "") As %Status
+{
+    #Define zgbldistinct ^IRIS.Temp.data.Distinct
+
+    Set lowerField = $$$LOWER(Field)
+    Set FieldPosition = $Case(lowerField,"databasename":2,"globalname":3,"processid":4,:-1)
+    
+    If FieldPosition = -1 Quit $$$ERROR($$$GeneralError,"Not supported field (only DatabaseName, GlobalName or ProcessID)")
+
+    Set qHandle("Key") = ""
+
+    If lowerField = "databasename", GlobalName = "" {
+        Set k2 = ""
+        For  {
+            Set k2 = $Order($$$zgbldistinct(FileId,k2))
+            Quit:k2=""
+            Set qHandle("Distinct", k2) = ""
+        }
+        Quit $$$OK
+    }
+
+    Set node = $Name(@$Name($$$zgbldistinct)@(FileId))
+
+    If DatabaseName '= "" Set node = $Name(@node@(DatabaseName))
+
+    If DatabaseName '= "", GlobalName '= "" Set node = $Name(@node@(GlobalName))
+
+    For  {
+        Set node = $Query(@node)
+        Quit:node=""
+        Quit:$QSubscript(node,1)'=FileId
+
+        If DatabaseName '= "", $QSubscript(node,2) '= DatabaseName Quit
+        If DatabaseName '= "", GlobalName '= "", $QSubscript(node,3) '= GlobalName Quit
+        If GlobalName '= "", $QSubscript(node,3) '= GlobalName Continue
+
+        Set qHandle("Distinct", $QSubscript(node,FieldPosition)) = ""
+    }
+
+    
+
+    Quit $$$OK
+}
+
+ClassMethod DistinctFetch(
+	ByRef qHandle As %Binary,
+	ByRef Row As %List,
+	ByRef AtEnd As %Boolean) As %Status [ PlaceAfter = DistinctExecute ]
+{
+    Set sc = $$$OK
+
+    Set qHandle("Key") = $Order(qHandle("Distinct",qHandle("Key")))
+
+    If qHandle("Key") '= "" Set AtEnd = $$$NO, Row = $Lb(qHandle("Key")) Quit $$$OK
+
+    Set Row = "", AtEnd = $$$YES
+
+    Quit sc
+}
+
+ClassMethod DistinctClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = DistinctExecute ]
+{
+	Kill qHandle Quit $$$OK
+}
+
+Query SearchRecord(Filter As %DynamicObject) As %Query(CONTAINID = 1, ROWSPEC = "ID:%Integer,File:%String,TypeName:%String,TimeStamp:%TimeStamp,InTransaction:%Boolean,ProcessID:%Integer,DatabaseName:%String,NumberOfValues:%Integer,GlobalNode:%String,Address:%Integer,FormattedOldValue:%String,FormattedNewValue:%String,ExistsOldValue:%Boolean,ExistsNewValue:%Boolean,Position:%Integer") [ SqlProc ]
 {
 }
 
@@ -32,7 +121,7 @@ ClassMethod SearchRecordExecute(
     If '$IsObject(Filter) Set Filter = {}.%FromJSON(Filter)
 
     Set sql($Increment(sql)) = "SELECT ID, File, TypeName, TimeStamp, InTransaction, ProcessID, DatabaseName, NumberOfValues, GlobalNode, Address "
-                                _ ", FormattedOldValue, FormattedNewValue "
+                                _ ", FormattedOldValue, FormattedNewValue, ExistsOldValue, ExistsNewValue, Position "
     Set sql($Increment(sql)) = "FROM dc_journalindexer_data.SetKillRecord "
     Set sql($Increment(sql)) = "WHERE "
     $$$QuitOnError(..SearchQueryBuilder(Filter, .args, .sql))
@@ -83,7 +172,7 @@ ClassMethod SearchQueryBuilder(
     Set startIndice = $Get(sql,0)
     #define ZADDAND $Select($Get(sql,0)>(startIndice+1):" AND ",1:"")
     #define ZCanAddToWhereClause(%key) (Filter.%IsDefined(%key) && (Filter.%Get(%key).Value '= "")) 
-    #define ZIsAllowedOperator(%operator) (''$ListFind($ListBuild("between",">",">=","<","<=","["),$$$LOWER(%operator)))
+    #define ZIsAllowedOperator(%operator) (''$ListFind($ListBuild("between",">",">=","<","<=","[","="),$$$LOWER(%operator)))
     
     Set iter = Filter.%GetIterator()
     While iter.%GetNext(.k, .v, .t) {
@@ -97,12 +186,21 @@ ClassMethod SearchQueryBuilder(
     }
 
     /// Where condition for simple property with "equals" operator.
-    For key = "InTransaction", "DatabaseName", "File", "MirrorDatabaseName", "Type", "ProcessID" {
+    For key = "InTransaction", "File", "MirrorDatabaseName", "Type", "ProcessID" {
         Continue:'$$$ZCanAddToWhereClause(key)
 
         Set sql($Increment(sql)) = $$$ZADDAND _ key _ " = ?",
             args($Increment(args)) = Filter.%Get(key).Value
     }
+
+    For key =  "DatabaseName" {
+        Continue:'$$$ZCanAddToWhereClause(key)
+
+        Set sql($Increment(sql)) = $$$ZADDAND _ "Database" _ " = ?",
+            args($Increment(args)) = ##class(dc.journalindexer.data.DB).GetId(Filter.%Get(key).Value,$$$YES)
+    }
+
+    
 
     /// Where condition for properties with '*' and '?' allowed
     For key = "GlobalName" {
@@ -114,37 +212,59 @@ ClassMethod SearchQueryBuilder(
 
     /// Where condition for List Of String properties (using predicate FOR SOME %ELEMENT ...)
     For key = "Subscripts" {
-        Continue:'(Filter.%IsDefined(key) && (Filter.%Get(key).Value '= ""))
-        Set tmp = Filter.%Get(key)
-        Set condition = "", value = tmp.Value 
-        
-        Set sql($Increment(sql)) = $$$ZADDAND _ "FOR SOME %ELEMENT("_key_") ("
+        Continue:'Filter.%IsDefined(key)
 
-        If tmp.Operator = "" {
-            Do ProcessCondition
-            Set args($Increment(args))  = value
+        If Filter.%Get(key).%IsA("%DynamicArray") {
+            Set tmpArray = Filter.%Get(key)
         } Else {
-            
-            If '$$$ZIsAllowedOperator(tmp.Operator) $$$ThrowStatus($$$ERROR(5002,"Operator "_tmp.Operator_" is not allowed."))
-
-            If $$$LOWER(tmp.Operator) = "between" {
-                Set condition = " BETWEEN ? AND ? "
-                Set args($Increment(args)) = tmp.Start,
-                    args($Increment(args)) = tmp.End
-            } Else {
-                Set args($Increment(args))  = value
-            }
+            Set tmpArray = [].%Push(Filter.%Get(key))
         }
+        Continue:tmpArray.%Size()=0
 
-        Set sql($Increment(sql)) = "%VALUE" _  condition
-        
-        Set:Filter.Subscripts.Position'="" sql($Increment(sql)) = "AND %KEY = ?", args($Increment(args)) = Filter.Subscripts.Position
-        
+        #dim tmpArray As %DynamicArray
+        #dim iter As %Iterator.Array = tmpArray.%GetIterator()
+        Set sql($Increment(sql)) = $$$ZADDAND _"("
+
+        While iter.%GetNext(.iterKey,.tmp) {
+            
+            Set condition = "", value = tmp.Value, tmp.Operator = $$$LOWER(tmp.Operator)
+            
+            Set sql($Increment(sql)) = tmp.Logical _ " FOR SOME %ELEMENT("_key_") ("
+
+            If tmp.Operator = "" {
+                Do ProcessCondition
+                Set args($Increment(args))  = value
+            } Else {
+                
+                If '$$$ZIsAllowedOperator(tmp.Operator) $$$ThrowStatus($$$ERROR(5002,"Operator "_tmp.Operator_" is not allowed."))
+
+                If tmp.Operator = "between" {
+                    Set condition = " BETWEEN ? AND ? "
+                    Set args($Increment(args)) = tmp.Start,
+                        args($Increment(args)) = tmp.End,
+                        value = tmp.Start
+                    
+                } Else {
+                    Set condition = " "_tmp.Operator _ " ? "
+                    Set args($Increment(args)) = value
+                }
+            }
+
+            If $IsValidNum(value) {
+                Set sql($Increment(sql)) = "CAST(%VALUE AS NUMERIC)" _  condition
+            } Else {
+                Set sql($Increment(sql)) = "%VALUE" _  condition
+            }
+            
+            Set:tmp.Position'="" sql($Increment(sql)) = "AND %KEY = ?", args($Increment(args)) = tmp.Position
+            
+            Set sql($Increment(sql)) = ")"
+        }
         Set sql($Increment(sql)) = ")"
     }
 
     /// Condition with Range
-    For key = "Address", "TimeStamp" {
+    For key = "Address", "TimeStamp", "SubscriptsSize" {
         Continue:'(Filter.%IsDefined(key) && (Filter.%Get(key).Value '= ""))
 
         Set tmp = Filter.%Get(key)
@@ -215,17 +335,6 @@ ClassMethod GetListPosition(
 {
     Return:'$ListValid(Property) Property
     Return $ListGet(Property, Position)
-}
-
-Query StatsBy(
-	FileId As %Integer,
-	StatsOn As %String) As %SQLQuery(ROWSPEC = "ID:%Integer,FileId:%Integer,StatsOn:%String,Key:%String,Hit:%Integer,Size:%Integer,TypeJSON:%String") [ SqlProc ]
-{
-SELECT ID, FileId, StatsOn, Key, Hit, Size, TypeJSON
-FROM dc_journalindexer_data.Stats
-WHERE FileId = :FileId
-AND StatsOn = :StatsOn
-ORDER BY Size DESC
 }
 
 ClassMethod FormatString(Property As %String) As %String [ SqlProc ]

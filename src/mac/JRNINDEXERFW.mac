@@ -1,0 +1,244 @@
+ROUTINE JRNINDEXERFW
+JRNINDEXERFW(FileId="")
+    New (FileId,%zFilter)
+
+    #Define LOWER(%a)           $zcvt(%a,"L")
+    #Define ZLEFTALIGN(%1,%2)   $Reverse($Justify($Reverse(%1),%2))
+
+    Set (DatabaseName,ProcessID,GlobalName,key) = "", x = "ZZZ"
+
+    If $IsObject($Get(%zFilter)) {
+        Set Filter = {}.%FromJSON(%zFilter.%ToJSON())
+    } Else {
+        Set Filter = {}
+    }
+     
+    Set menuItem($Increment(menuItem)) = $j(menuItem,2)_") Set database filter."
+    Set menuItem($Increment(menuItem)) = $j(menuItem,2)_") Set global name filter."
+    Set menuItem($Increment(menuItem)) = $j(menuItem,2)_") Set process id filter."
+    Set menuItem($Increment(menuItem)) = $j(menuItem,2)_") Set Address range filter."
+    Set menuItem($Increment(menuItem)) = $j(menuItem,2)_") Set TimeStamp range filter."
+    Set menuItem($Increment(menuItem)) = $j(menuItem,2)_") Set Journal type entry filter."
+    Set menuItem($Increment(menuItem)) = $j(menuItem,2)_") Set Global Subscripts Size filter."
+    Set menuItem($Increment(menuItem)) = $j(menuItem,2)_") Set Subscripts filter by position."
+    Set menuItem($Increment(menuItem)) = $j("O)",3)_ " Set OldValue filter."
+    Set menuItem($Increment(menuItem)) = $j("N)",3)_" Set NewValue filter."
+    
+    
+    Do {
+        Do ShowFilterMenu 
+        Write !,!,"  Current filter : ",Filter.%ToJSON()
+        Write !,!,"(Q)uit (C)ancel (V)iew current Filter (X)Clear Filter (#)Menu item => "
+        Read *x Set x = $$$LOWER($Char(x))
+        
+        If x = 1 Do Database Continue
+        If x = 2 Do GlobalName Continue
+        If x = 3 Do ProcessID Continue
+        If x = 4 Do AddressRange Continue
+        If x = 5 Do TimeStampRange Continue
+        If x = 6 Do JrnType Continue
+        If x = 7 Do SubscriptsSize Continue
+        If x = 8 Do Subscripts Continue
+        
+        If x = "o" Do SetValueFilter("OldValue") Continue
+        If x = "n" Do SetValueFilter("NewValue") Continue
+
+        If x = "x" Set (DatabaseName,ProcessID,GlobalName) = "", Filter = {} Continue
+        If x = "v" Do ShowCurrentFilter Continue
+        
+    } While "qc" '[ x
+    
+    Set:x="q" %zFilter = {}.%FromJSON(Filter.%ToJSON())
+    Quit $Select(x="q":Filter,1:"")
+
+ShowDataList(dataList)
+    New (dataList)
+    Write !
+    For i=1:1:$ListLength(dataList) {
+
+        Write:i-1#2=0 !
+        Write $$$ZLEFTALIGN($j(i,3)_") "_$lg(dataList,i),40)
+    }
+    Quit
+
+SetValueFilter(property)
+
+    Set title = "Set "_property_" filter."
+    Write #,##class(%Utility).Center(title),!,!
+
+    Set ar = 60
+    Write $Justify("Position (If value is a list, default: 1) => ",ar)
+    Read position If position = "" Set position = 1 Write position
+    If '$IsValidNum(position) Write "BAD VALUE" Hang 1 Quit
+
+    Write !,!,$Justify("Value (wildcards * and ? are allowed) => ",ar)
+
+    Read filterValue
+
+    Do Filter.%Set(property,{"Value":(filterValue),"Position":(position)})
+
+    Quit
+
+AddressRange
+
+    #Define IsValidBetweenValue(%start,%end)     ('$IsValidnum(%start)||'$IsValidNum(%end)||( %end < %start )) 
+    
+    Write #,##class(%Utility).Center("Set Address range filter"),!,!
+
+    Write:FileId'="" !,"This journal start at address ",##class(dc.journalindexer.data.File).FirstRecordGetStored(FileId) ,"and end at ",##class(dc.journalindexer.data.File).LastRecordGetStored(FileId),!
+
+    Write !,$Justify("Start at address => ",30) Read addrStart
+    If addrStart = "", FileId '= "" Set addrStart = ##class(dc.journalindexer.data.File).FirstRecordGetStored(FileId) Write addrStart
+    
+    Write !,!,$Justify("End at address => ",30) Read addrEnd
+    If addrEnd = "", FileId '= "" Set addrEnd = ##class(dc.journalindexer.data.File).LastRecordGetStored(FileId) Write addrEnd
+
+    If $$$IsValidBetweenValue(addrStart,addrEnd) Write !,!," BAD VALUE " Kill addrStart, addrEnd Hang 1 Quit
+    
+    Do Filter.%Set("Address", { "Start":(addrStart), "End":(addrEnd), "Operator": "between"})
+    Kill addrStart, addrEnd
+    Quit
+
+TimeStampRange
+
+    #Define IsValidBetweenTS(%start,%end)     ('##class(%Library.TimeStamp).IsValid(%start)||'##class(%Library.TimeStamp).IsValid(%end)||( %end ]] %start )) 
+
+    Write #,##class(%Utility).Center("Set TimeStamp range filter"),!,!
+
+    If FileId '= "" {
+        Set firstRecord = ##class(dc.journalindexer.data.Record).FileAddrOpen(FileId, ##class(dc.journalindexer.data.File).FirstRecordGetStored(FileId))
+        Set lastRecord = ##class(dc.journalindexer.data.Record).FileAddrOpen(FileId, ##class(dc.journalindexer.data.File).LastRecordGetStored(FileId))
+        Write:$IsObject(firstRecord)&&$IsObject(lastRecord) !,"This journal start at ",firstRecord.TimeStamp ," and end at ",lastRecord.TimeStamp,!
+    }
+
+    Write !,$Justify("Start at TimeStamp => ",30) Read tsStart
+    If tsStart = "", $IsObject(firstRecord) Set tsStart = firstRecord.TimeStamp Write tsStart
+
+    Write !,!,$Justify("End at TimeStamp => ",30) Read tsEnd
+    If tsEnd = "", $IsObject(lastRecord) Set tsEnd = lastRecord.TimeStamp Write tsEnd
+
+    Kill firstRecord,lastRecord
+    
+    If '$$$IsValidBetweenTS(tsStart,tsEnd) Write !,!," BAD VALUE " Kill tsStart, tsEnd Hang 1 Quit
+    
+    Do Filter.%Set("TimeStamp", { "Start":(tsStart), "End":(tsEnd), "Operator": "between"})
+
+    Kill tsStart, tsEnd
+
+    Quit
+
+JrnType
+    For i=1:1:26 {
+        Set typeName = ##class(%Library.JournalRecordType).LogicalToDisplay(i)
+        If typeName '[ "Vec", typeName [ "SET" || (typeName [ "KILL") Set $List(dataList, *+1) = typeName
+    }
+    Do ShowDataList(dataList)
+    Write !,!,"Select an item => "  Read item
+    Set selectedValue = $Lg(dataList, +item)
+    Kill dataList,typeName
+    If selectedValue = "" Kill selectedValue Quit
+    Do Filter.%Set("Type", {"Value":(selectedValue)})
+    Kill selectedValue
+    Quit
+
+ShowCurrentFilter
+    Write #, ##class(%Utility).Center("Current filter"),!
+    Do ##class(%JSON.Formatter).%New().Format(Filter.%ToJSON())
+    Write !,!,##class(%Utility).Center("<press any key>") Read *z Kill z
+    Quit
+
+ShowFilterMenu
+    Write #,##class(%Utility).Center("Filter Wizard"),!
+    For  {
+        Set key = $Order(menuItem(key),1,v) 
+        Quit:key=""
+        If menuItem-1 = key Write !
+        Write !,$Char(9),v
+    }
+    Quit
+
+Database
+    Set Distinct = "DatabaseName" Write #, ##class(%Utility).Center("List Of database"),!
+    Set selectedValue = $$ShowAndSelectDistinct()
+    Set:selectedValue'="" DatabaseName = selectedValue
+    Kill selectedValue
+    Quit
+
+GlobalName
+    Set Distinct = "GlobalName" Write #, ##class(%Utility).Center("List Of Global Name"),!
+    Set selectedValue = $$ShowAndSelectDistinct()
+    Set:selectedValue="" GlobalName = selectedValue
+    Kill selectedValue
+    Quit
+
+ProcessID
+    Set Distinct = "ProcessID" Write #, ##class(%Utility).Center("List Of Process ID"),!
+    Set selectedValue = $$ShowAndSelectDistinct()
+    Set:selectedValue="" ProcessID = selectedValue
+    Kill selectedValue
+    Quit
+
+ShowAndSelectDistinct()
+    Do ##class(dc.journalindexer.dao.JournalDataDAO).GetDistinct(Distinct,FileId,DatabaseName,ProcessID,GlobalName,.dataList,.sc)
+    Do ShowDataList(dataList)
+    Write !,!,"Select an item => " 
+    Read item
+    Set selectedValue = $Lg(dataList, +item)
+    Kill dataList,item
+    Quit:selectedValue="" ""
+    Do Filter.%Set(Distinct,{"Value":(selectedValue)})
+    Quit selectedValue
+
+SubscriptsSize
+    Write #,##class(%Utility).Center("Set GlobalSubscriptsSize range filter"),!,!
+    Write !,$Justify("Number of subscripts from (Default: 0) => ",50) Read valueStart
+    If valueStart = "" Set valueStart = 0 Write valueStart
+    Write !,!,$Justify($Replace("To (Default: %1) => ", "%1",$s(valueStart=0:9,1:valueStart)),50) Read valueEnd
+    If valueEnd = "" Set valueEnd = $s(valueStart=0:9,1:valueStart) Write valueEnd
+    If ('$IsValidnum(valueStart) || '$IsValidNum(valueEnd) || ( valueEnd < valueStart )) {
+        Write !,!," BAD VALUE " 
+        Hang 1
+        Quit
+    }
+    If valueStart = valueEnd Do Filter.%Set("SubscriptsSize",{"Value":(valueStart),"Operator":"="}) Quit
+    Do Filter.%Set("SubscriptsSize",{"Start":(valueStart),"End":(valueEnd),"Operator":"between"})
+    Quit
+
+Subscripts
+    Do {
+        Write #,##class(%Utility).Center("Set Subscript filter"),!,!
+        Write:Filter.%IsDefined("Subscripts") !, " Current Subscripts filter: ",Filter.Subscripts.%ToJSON(),!,!
+        Set rAlign = 30, fValue = ""
+        Write $Justify("Position (Default : 1) => ", rAlign)
+        Read position Set:position="" position = 1 If '$IsValidNum(position) Write !,"BAD VALUE" Hang 2 Continue
+        Write !,!, "(B)etween, (E)quals, (G)reater than, (L)ess than."
+        Write !,!,$Justify("Select an operator => ", rAlign)
+        Read operator Set operator = $$$LOWER(operator)
+        Set:operator="" operator = "e" 
+        If '$ListFind($ListBuild("b","e","g","l"),operator) Write !,"BAD VALUE" Hang 2 Continue
+        If operator '= "b" {
+            Set operator = $tr(operator,"egl","=><")
+            Write !,!,$Justify("Value => ", rAlign)
+            Read fValue Continue:fValue=""
+            Set subscriptFilter = {"Operator":(operator),"Value":(fValue),"Position":(position)}
+        } Else {
+            Set operator = "between"
+            Write !,!,$Justify("Start value => ", rAlign)
+            Read valueStart Continue:valueStart=""
+            Write !,!,$Justify("End value => ", rAlign)
+            Read valueEnd Continue:valueEnd=""
+            Set subscriptFilter = {"Operator":(operator),"Start":(valueStart),"End":(valueEnd)}
+        }
+        If Filter.%IsDefined("Subscripts") {
+            Write !,!," Logical Operator related to previous suscripts filter (AND\OR Default:AND) => "
+            Read logical set logical = $$$LOWER(logical) set:logical="" logical = "and"
+            If '$ListFind($ListBuild("and","or"),logical) Write !,"BAD VALUE" Hang 2 Continue
+            Set subscriptFilter.Logical = logical
+        } Else {
+            Do Filter.%Set("Subscripts",[])
+        }
+        Do Filter.Subscripts.%Push(subscriptFilter)
+        Write !,!, "  Add another Subscripts filter (Y)es, (N)o (Defaut: No) => "
+        Read *addNew Set addNew = $$$LOWER($Char(addNew))
+    } While (addNew = "y")
+    Quit

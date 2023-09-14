@@ -11,13 +11,25 @@ Property FirstRecord As %Integer;
 Property LastRecord As %Integer;
 
 /// Cluster start time in time(0) format (i.e., # of seconds since the Epoch)
-/// or 0 if not a cluster journal file
+/// Or 0 if not a cluster journal file
 Property ClusterStartTime0 As %Integer;
 
 /// Cluster start time in %TimeStamp format or "" if not a cluster journal file
 Property ClusterStartTime As %String;
 
 Property UserDefinedName As %String(MAXLEN = 128, TRUNCATE = 1);
+
+Trigger KillDistinct [ Event = DELETE, Time = AFTER ]
+{
+    Kill ^IRIS.Temp.data.Distinct({ID})
+}
+
+ClassMethod %OnAfterDelete(oid As %ObjectIdentity) As %Status
+{
+    Set id = $$$oidPrimary(oid)     
+    Kill:id'="" ^IRIS.Temp.data.Distinct(id)
+    Return $$$OK
+}
 
 Storage Default
 {

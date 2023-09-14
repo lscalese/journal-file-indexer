@@ -59,13 +59,13 @@ ClassMethod RunIndex() As %Status
             Set x = $$$LOWER($Char(x))
             
             If x = "p", state = "running" { ; pause -> suspend process
-                Set sc = ..ProcessAction(PIDIndexer, "suspend")
+                Set sc = ##class(dc.journalindexer.services.Utils).ProcessAction(PIDIndexer, "suspend")
                 If $$$ISOK(sc) Set state = "pause"
             } ElseIf x = "r", state '= "running" { ; resume -> resume process
-                Set sc = ..ProcessAction(PIDIndexer, "resume")
+                Set sc = ##class(dc.journalindexer.services.Utils).ProcessAction(PIDIndexer, "resume")
                 If $$$ISOK(sc) Set state = "running"
             } ElseIf x = "c" { ; cancel -> terminate process
-                Set sc = ..ProcessAction(PIDIndexer, "terminate")
+                Set sc = ##class(dc.journalindexer.services.Utils).ProcessAction(PIDIndexer, "terminate")
                 If $$$ISOK(sc) Set state = "terminate" Quit
             }
         }
@@ -84,7 +84,15 @@ ClassMethod RunIndex() As %Status
                 Do ShowMessage
             }
 
-            Quit:msg.Status="Done"||(msg.Status="ERR")
+            Quit:msg.Status="ERR"
+
+            If msg.Status="Done" {
+
+                Write !,!," Would you like to RUN a Tune table on schema dc_journalindexer_data (Y)es (No) (Default: No)=> ? "
+                Read tune
+                Set:$$$LOWER($Extract(tune))="y" sc = $SYSTEM.SQL.Stats.Table.GatherSchemaStats("dc_journalindexer_data")
+                Quit
+            }
             
             Continue
         }
@@ -159,6 +167,9 @@ CleanInconsistentData
     }
     Write !, $Char(9), "Delete indexed data ... "
     Set sc = ..DeleteIndexedJournalData(currentLastJrnId)
+
+    Kill ^IRIS.Temp.data.Distinct(currentLastJrnId)
+    
     If $$$ISOK(sc) {
         Write "OK"
     } Else {
@@ -171,23 +182,8 @@ ClassMethod ProcessAction(
 	PID As %Integer,
 	Action As %String) As %Status [ Private ]
 {
-    New $Namespace Set $Namespace = "%SYS"
-    Set sc = $$$OK
-
-    Set process = ##class(SYS.Process).%OpenId($ZChild,,.sc)
-    If $$$ISERR(sc) Write ! Do $SYSTEM.Status.DisplayError(sc) Quit sc
-
-    If Action = "suspend" {
-        Set sc = process.Suspend()
-        Write !, $Select($$$ISOK(sc): "Process suspended.", 1: $SYSTEM.Status.GetOneErrorText(sc))
-    } ElseIf Action = "resume" {
-        Set sc = process.Resume()
-        Write !, $Select($$$ISOK(sc): "Process resumed.", 1: $SYSTEM.Status.GetOneErrorText(sc))
-    } ElseIf Action = "terminate" {
-        Set sc = process.Terminate()
-        Write !, $Select($$$ISOK(sc): "Process terminated.", 1: $SYSTEM.Status.GetOneErrorText(sc))
-    }
-    Quit sc
+    /// code moved
+    Quit ##class(dc.journalindexer.services.Utils).ProcessAction()
 }
 
 /// Open a journal file and index its content in database.
@@ -281,8 +277,15 @@ ClassMethod Index(
         Set msg.Action = "Build Indices", msg.Message= "..." Do EventSignal
         Set sc = ##class(dc.journalindexer.dao.JournalDataDAO).RebuildIndices(startIndexId,lastRecordId)
 
+        ;If $$$ISOK(sc) {
+        ;    Set msg.Action = "Tune table", msg.Message = "..." Do EventSignal
+        ;    Set sc = $SYSTEM.SQL.Stats.Table.GatherSchemaStats("dc_journalindexer_data")
+        ;}
+
         Set msg.Action= "Delete old journal", msg.Message= "..." Do EventSignal
         Job ##class(dc.journalindexer.services.Indexer).DeleteOld()
+
+
 
     } Catch ex {
         Set sc = ex.AsStatus()
