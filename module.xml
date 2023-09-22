@@ -3,7 +3,7 @@
   <Document name="journal-indexer.ZPM">
     <Module>
       <Name>journal-indexer</Name>
-      <Version>0.4.0</Version>
+      <Version>0.5.0</Version>
       <Description></Description>
       <Packaging>module</Packaging>
       <SourcesRoot>src</SourcesRoot>
@@ -12,6 +12,29 @@
       <Resource Name="JRNINDEXERFW.MAC" Directory="mac/"/>
       <Resource Name="journalindexer.INC" Directory="inc/"/>
       <Invoke Class="dc.journalindexer.services.Config" Method="Initialize"></Invoke>
+      <CSPApplication 
+        Url="/jrnindexer/api"
+        Recurse="1"
+        MatchRoles=":${dbrole}"
+        PasswordAuthEnabled="1"
+        UnauthenticatedEnabled="0"
+        DispatchClass="dc.journalindexer.rest.disp"
+        ServeFiles="1"
+        CookiePath="/jrnindexer/"
+        UseCookies="2"
+      />
+      <CSPApplication
+        Url="/jrnindexer/ws"
+        SourcePath=""
+        DeployPath="${cspdir}jrnindexer/ws"
+        ServeFiles="1"
+        Recurse="1"
+        CookiePath="/jrnindexer/"
+        UseCookies="2"
+        MatchRoles=":${dbrole}"
+        PasswordAuthEnabled="0"
+        UnauthenticatedEnabled="1"
+      />
       <UnitTest Name="/" Package="tests.dc.journalindexer" Phase="test"/>
     </Module>
   </Document>

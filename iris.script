@@ -15,13 +15,20 @@
     do $SYSTEM.OBJ.Load("/home/irisowner/dev/Installer.cls", "ck")
     set sc = ##class(App.Installer).setup()
 
-    zn "IRISAPP"
+    ;zn "%SYS"
+    ;Do ##class(Config.NLS.Locales).Install("fraw")
+    ;Do ##class(Config.NLS.Locales).Install("enuw")
 
+    zn "IRISAPP"
+    
     // Create /_vscode web app to support intersystems-community.testingmanager VS Code extension
     zpm "install vscode-per-namespace-settings"
 
     // Configure %UnitTest in IRISAPP to suit the VS Code extension
     set ^UnitTestRoot="/usr/irissys/.vscode/IRISAPP/UnitTestRoot"
 
+    Do ##class(%EnsembleMgr).EnableNamespace($NAMESPACE)
+    zpm "install swagger-ui"
+    ;zpm "install openapi-suite"
     zpm "load /home/irisowner/dev/ -v":1:1
     halt

@@ -16,15 +16,16 @@ ClassMethod RestoreAndExportToFile(
 {
     Set sc = $$$OK
     Try {
-        Lock +^jrnindxer.tmprestore
+        Lock +^jrnindxer.tmprestore:10
+        If '$Test $$$ThrowStatus($$$ERROR($$$GeneralError,"Fail to acquire a lock on ^jrnindxer.tmprestore"))
         Kill:$Data(^jrnindxer.tmprestore) ^jrnindxer.tmprestore
         Set sc = ..RestoreGlobal(Filter, RestoreValue, $Name(^jrnindxer.tmprestore), .errors)
         Quit:$$$ISERR(sc)
         Set sc = $SYSTEM.OBJ.Export($Extract($Name(^jrnindxer.tmprestore), 2, *) _ ".GBL", FileName)
+        Kill ^jrnindxer.tmprestore
     } Catch ex {
         Set sc = ex.AsStatus()
     }
-    Kill ^jrnindxer.tmprestore
     Lock -^jrnindxer.tmprestore
     Quit sc
 }
@@ -131,7 +132,7 @@ validate
     If Filter.%IsDefined("File"), Filter.File.Value = "" Set sc = $$$ADDSC(sc,$$$ERROR($$$GeneralError, "Filter File is mandatory."))
     If Filter.%IsDefined("GlobalName"), Filter.GlobalName.Value = "" Set sc = $$$ADDSC(sc,$$$ERROR($$$GeneralError, "Filter GlobalName is mandatory."))
     If Filter.%IsDefined("GlobalName"), Filter.GlobalName.Value '= $TR(Filter.GlobalName.Value,"?*","") Set sc = $$$ADDSC(sc,$$$ERROR($$$GeneralError, "Wildcard are not permitted here for Filter GlobalName."))
-    If '##class(dc.journalindexer.data.File).%ExistsId(Filter.File.Value) Set sc = $$$ADDSC(sc,$$$ERROR($$$GeneralError, $$$FormatText("FileId %1 does not exist.", FileId)))
+    If '##class(dc.journalindexer.data.File).%ExistsId(Filter.File.Value) Set sc = $$$ADDSC(sc,$$$ERROR($$$GeneralError, $$$FormatText("FileId %1 does not exist.", Filter.File.Value)))
     If '$ListFind($Lb("oldvalue","newvalue"), RestoreValue) Set sc = $$$ADDSC(sc, "Bad value for RestoreValue argument.")
     If ResourceName '= "", '$SYSTEM.Event.Defined(ResourceName) Set sc = $$$ADDSC(sc, $$$FormatText("ResourceName %1 does not exist.", ResourceName))
     Quit

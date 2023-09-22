@@ -49,7 +49,7 @@ ClassMethod RunIndex() As %Status
     Write !
     Write !, "Index process started Type (P)ause, (R)esume, (C)ancel."
 
-    Set state = "running"
+    Set state = "running", firstLoad = $$$YES
 
     For  {
 
@@ -78,19 +78,38 @@ ClassMethod RunIndex() As %Status
             
             Set msg = {}.%FromJSON($ListGet(returnList,2))
             
-            If msg.Action = "Load Journal" {
+            If msg.Action = "Load" {
+                If firstLoad Write !," * Load journal file: "
                 Do showProgression
-            } Else {
-                Do ShowMessage
+                Set:firstLoad firstLoad = $$$NO
+            } ElseIf msg.Action = "FE" {
+                Write !," * File ",JournalFile, " exists: ", $Select(+msg.FileExists=1:"YES",1:"NO")
+            } ElseIf msg.Action = "FV" {
+                Write !," * File ",JournalFile, " is a valid journal file: ", $Select(+msg.IsValid=1:"YES",1:"NO")
+            } ElseIf msg.Action = "FB" {
+                If msg.Flush = "" {
+                    Write !," * Flush buffer ... "
+                } Else {
+                    Write " ", msg.Flush
+                }
+            } ElseIf msg.Action = "BI" {
+                If msg.BuildIndices = "" {
+                    Write !," * Build Indices ... "
+                } Else {
+                    Write " ", msg.BuildIndices
+                }
+            } ElseIf msg.Action = "DO" {
+                Write !," * Delete old indexed journal"
             }
 
-            Quit:msg.Status="ERR"
-
             If msg.Status="Done" {
-
+                Write !," = ", msg.Message
                 Write !,!," Would you like to RUN a Tune table on schema dc_journalindexer_data (Y)es (No) (Default: No)=> ? "
                 Read tune
                 Set:$$$LOWER($Extract(tune))="y" sc = $SYSTEM.SQL.Stats.Table.GatherSchemaStats("dc_journalindexer_data")
+                Quit
+            } ElseIf msg.Status = "ERR" {
+                Write !," ! ERROR: ", msg.Message
                 Quit
             }
             
@@ -113,15 +132,9 @@ ClassMethod RunIndex() As %Status
     Quit sc
 
 showProgression
-    Set showProgression = $Justify(msg.Journal.CurrentAddress, 12) _ " / " _ msg.Journal.LastAddress_"  "
+    Set showProgression = $Justify(msg.Load,6,2)_"%"
     Write showProgression
     For i=1:1:$Length(showProgression) Write $c(8)
-
-    Quit
-
-ShowMessage
-
-    Write !," * ",msg.Action," ", msg.Message
     Quit
 
 ShowHelp
@@ -201,37 +214,34 @@ ClassMethod Index(
 
     If ApplyZJRNFILT, $Data(^ROUTINE("ZJRNFILT")) Set applyFilter = $$$YES
 
-    Set msg = {"Action" : "File Validation", "Status" : "", "Message" : "", "Journal": {"FirstAddress":"", "LastAddress" : "", "CurrentAddress": ""}}
+    Set progression = {"Status":"In Progress","FileExists":"","IsValid":"","Load":0,"Flush":"","BuildIndices":"","Action":"FE","Message":""}
+    ;Set msg = {"Action" : "File Exists", "Status" : "", "Message" : "", "Journal": {"FirstAddress":"", "LastAddress" : "", "CurrentAddress": ""}}
+    If '##class(%File).Exists(JournalFile) Set JournalFile = JournalFile _ "z"     
+    If '##class(%File).Exists(JournalFile) Set sc = $$$ERROR($$$GeneralError, "File does not exist."),progression.FileExists = $$$NO Do EventSignalStatus Quit sc
+    Set progression.FileExists = $$$YES Do EventSignal
 
-    If '##class(%File).Exists(JournalFile) Set JournalFile = JournalFile _ "z" Set:'##class(%File).Exists(JournalFile) sc = $$$ERROR($$$GeneralError, "File does not exist.") Do EventSignalStatus Quit sc
-    If '##class(%SYS.Journal.File).IsValidJournal(JournalFile) Set sc = $$$ERROR($$$GeneralError, "Is not a valid journal file.") Do EventSignalStatus Quit sc
-
-    Set msg.Message = JournalFile _ " exists." Do EventSignal
-    Set msg.Message = JournalFile _ " is a valid journal file." Do EventSignal Set msg.Message = ""
-
+    Set progression.Action = "FV"
+    If '##class(%SYS.Journal.File).IsValidJournal(JournalFile) Set sc = $$$ERROR($$$GeneralError, "Is not a valid journal file."), progression.IsValid = $$$NO Do EventSignalStatus Quit sc
+    Set progression.IsValid = $$$YES Do EventSignal
+    
     Lock +^dc.journalindexer.services.Indexer:2 ; Only one index process at a time
 
     Set:'$Test sc = $$$ERROR($$$GeneralError, "An indexer process already running, process id :" _ ^$LOCK($Name(^dc.journalindexer.services.Indexer), "OWNER"))
 
     If $$$ISERR(sc) Do EventSignalStatus Quit sc
 
-    Set msg.Action = "Stop Journaling" Do EventSignal
     Do ##class(dc.journalindexer.services.Indexer).StopJournal(.transactionMode, .autoCommitMode)
 
     Try {
 
-        Set msg.Action = "Starting load journal file ... " Do EventSignal
+        Set progression.Action = "Load" Do EventSignal
         
         Set journal = ##class(%SYS.Journal.File).%OpenId(JournalFile, , .sc) Quit:$$$ISERR(sc)
         
         Set sc = ##class(dc.journalindexer.dao.JournalDataDAO).SetFile(journal, Name, .FileId) Quit:$$$ISERR(sc)
 
-        Set jrnRecord = journal.FirstRecord
+        Set jrnRecord = journal.FirstRecord, lastAddress = journal.LastRecord.Address
 
-        Set msg.Action = "Load Journal", 
-            msg.Status = "InProgress", 
-            msg.Journal = {"FirstAddress":(journal.FirstRecord.Address), "LastAddress" : (journal.LastRecord.Address), "CurrentAddress": ""}
-        
         Do EventSignal
 
         Set startIndexId = $Get(^IRIS.Temp.data.RecordD, 0) + 1
@@ -249,8 +259,8 @@ ClassMethod Index(
 
         While $IsObject(jrnRecord) {
             
-            Set:Notify'="" msg.Journal.CurrentAddress = jrnRecord.Address
-            
+            Set:Notify'="" progression.Load = $Normalize(jrnRecord.Address/lastAddress*100,2)
+
             If applyFilter {
                 Set restmode = 1
                 Do:jrnRecord.%IsA("%SYS.Journal.SetKillRecord") ^ZJRNFILT(jrnRecord.JobID_","_jrnRecord.RemoteSystemID,jrnRecord.DatabaseName,jrnRecord.GlobalNode,$Extract(jrnRecord.TypeName),.restmode,jrnRecord.Address,$zdth(jrnRecord.TimeStamp,3,1))
@@ -272,22 +282,17 @@ ClassMethod Index(
         Do:$Data(statsData) ##class(dc.journalindexer.dao.JournalDataDAO).SaveStats(FileId, .statsData)
 
         Do EventSignal
-
-        Set msg.Action = "Flush", msg.Message= "Flush Buffer ..."
-        Do EventSignal, ##class(dc.journalindexer.dao.JournalDataDAO).FlushBuffer()
         
-        Set msg.Action = "Build Indices", msg.Message= "..." Do EventSignal
+        Set progression.Action = "FB"
+        Do EventSignal, ##class(dc.journalindexer.dao.JournalDataDAO).FlushBuffer()
+        Set progression.Flush = "OK" Do EventSignal
+        
+        Set progression.Action = "BI" Do EventSignal
         Set sc = ##class(dc.journalindexer.dao.JournalDataDAO).RebuildIndices(startIndexId,lastRecordId)
+        Set progression.BuildIndices = $Select($$$ISOK(sc):"OK",1:$SYSTEM.Status.GetOneErrorText(sc)) Do EventSignal
 
-        ;If $$$ISOK(sc) {
-        ;    Set msg.Action = "Tune table", msg.Message = "..." Do EventSignal
-        ;    Set sc = $SYSTEM.SQL.Stats.Table.GatherSchemaStats("dc_journalindexer_data")
-        ;}
-
-        Set msg.Action= "Delete old journal", msg.Message= "..." Do EventSignal
+        Set progression.Action = "DO" Do EventSignal
         Job ##class(dc.journalindexer.services.Indexer).DeleteOld()
-
-
 
     } Catch ex {
         Set sc = ex.AsStatus()
@@ -295,21 +300,21 @@ ClassMethod Index(
 
     Lock -^dc.journalindexer.services.Indexer
 
-    Set msg.Action = "Restore journal state", msg.Message = "..." Do EventSignal
     Do ##class(dc.journalindexer.services.Indexer).RestoreJournalState(transactionMode, autoCommitMode)
 
-    Set msg.Status = $Select($$$ISOK(sc):"Done",1:"ERR"), msg.Message="with status : "_$Select($$$ISERR(sc):$SYSTEM.Status.GetOneErrorText(sc),1:"OK")
-
-    Set msg.Action = "ENDED" Do EventSignal
+    Set progression.Action = "END", 
+        progression.Status = $Select($$$ISOK(sc):"Done",1:"ERR"), 
+        progression.Message="Done with status : "_$Select($$$ISERR(sc):$SYSTEM.Status.GetOneErrorText(sc),1:"OK")
+    Do EventSignal
 
     Return sc
 
 EventSignal
     Quit:Notify=""
-    Do $SYSTEM.Event.Signal(Notify, msg.%ToJSON())
+    Do $SYSTEM.Event.Signal(Notify, progression.%ToJSON())
     Quit
 EventSignalStatus
-    Set msg.Status = "ERR", msg.Message = $SYSTEM.Status.GetOneErrorText(sc)
+    Set progression.Status = "ERR", progression.Message = $SYSTEM.Status.GetOneErrorText(sc)
     Do EventSignal
     Quit
 }
@@ -352,7 +357,7 @@ ClassMethod DeleteOld(Max As %Integer = {##class(dc.journalindexer.services.Conf
     Quit sc
 }
 
-/// Delete journal indexed in database
+/// Delete journal indexed in databaseJob ..Index(JournalFile, userDefinedName, resourceName, "", useJrnFilter) 
 ClassMethod DeleteIndexedJournalData(JournalId As %Integer) As %Status
 {
     Set sc = $$$OK
@@ -411,6 +416,109 @@ ClassMethod CheckAndCleanTempFiles() As %Status
     }
 
     Return sc
+}
+
+ClassMethod RunIndexFromRESTCall(
+	JournalFile As %String,
+	runTuneTable As %Boolean,
+	userDefinedName As %String = {##class(%File).GetFilename(JournalFile)},
+	useJrnFilter As %Boolean = {$$$NO},
+	resourceName As %String,
+	deleteFileAfterIndex As %Boolean = {$$$NO}) As %Status
+{
+    Set sc = $$$OK, PIDIndexer = ""
+    Try{
+        Set:userDefinedName="" userDefinedName = ##class(%File).GetFilename(JournalFile)
+    
+        Do:$SYSTEM.Event.Defined(resourceName) $SYSTEM.Event.Delete(resourceName)
+        Do $SYSTEM.Event.Create(resourceName)
+
+        Job ..Index(JournalFile,userDefinedName,resourceName,"",useJrnFilter)::2
+        If '$Test {
+            Set sc = $$$ERROR($$$GeneralError,"Fail to start job Index.")
+            Set progression = {"Status":"ERR", "Message":($SYSTEM.Status.GetOneErrorText(sc))}
+            Do $SYSTEM.Event.Delete(resourceName)
+            $$$ThrowStatus(sc)
+        } Else {
+            Set PIDIndexer = $ZChild
+        }
+
+        For  {
+            
+            Set returnList = $SYSTEM.Event.WaitMsg(resourceName, 2)
+            
+            Set returnState = $ListGet(returnList, 1)
+
+            If returnState = 1 {
+                
+                Set progression = {}.%FromJSON($ListGet(returnList,2))
+
+                If progression.Status = "ERR" Set sc = $$$ERROR($$$GeneralError,progression.Message) Do Send Quit
+
+                If progression.Status="Done" {
+                    If 'runTuneTable Do Send Quit
+                    Set progression.Status = "In Progress"
+                    Set progression.Action = "Tune"
+                    Set progression.Message = ""
+                    Do Send
+                    Set sc = $SYSTEM.SQL.Stats.Table.GatherSchemaStats("dc_journalindexer_data")
+                    Set progression.Tune = $Select($$$ISOK(sc):"OK",1:$SYSTEM.Status.GetOneErrorText(sc))
+                    Set progression.Status = $Select($$$ISOK(sc):"Done",1:"ERR")
+                    Set progression.Action = "END"
+                    Set progression.Message = "Done with status : "_progression.Tune
+                    Do Send
+                    Quit
+                }
+
+                Do Send
+
+                Continue
+            }
+
+            If returnState = -1 {
+                Set sc = $$$ERROR($$$GeneralError, "Ressource deleted.") 
+                Set progression.Status = "ERR"
+                Set progression.Message = $SYSTEM.Status.GetOneErrorText(sc)
+                Do Send
+                Quit
+            }
+
+            If returnState = 0, '##class(%SYS.ProcessQuery).%ExistsId(PIDIndexer) {
+                Set sc = $$$ERROR($$$GeneralError, "Index process not found")
+                Set progression.Status = "ERR"
+                Set progression.Message = $SYSTEM.Status.GetOneErrorText(sc)
+                Do Send
+                Quit 
+            }
+            
+        }
+        Do $SYSTEM.Event.Delete(resourceName)
+    } Catch ex {
+        Set sc = ex.AsStatus()
+        Set ^last.err = $zdt($h,3,1) _ " " _ $SYSTEM.Status.GetErrorText(sc)
+    }
+    
+    If 'deleteFileAfterIndex Return sc
+
+    ; Delete only for uploaded journal file, check the log to avoid a mistake ...
+    Do ##class(%SYS.Journal.History).LoadLog(, .list)
+    Set key = "", found = $$$NO
+    
+    For  {
+        Set key = $Order(list(key), 1 ,value)
+        Quit:key=""
+        Set found = $Piece(value, ",", 2) = JournalFile
+        Quit:found
+    }
+
+    If 'found, ##class(%File).Exists(JournalFile) Do ##class(%File).Delete(JournalFile)
+
+    Return sc
+
+Send
+    Set progression.MessageType="INDEXER", str = progression.%ToJSON(), ^dc.journalindexer.token(resourceName) = str
+    Do ##class(dc.journalindexer.WebSocket).BroadcastMessage(str) 
+    Quit
 }
 
 }

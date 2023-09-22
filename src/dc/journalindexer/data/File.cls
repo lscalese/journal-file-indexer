@@ -64,6 +64,4 @@ Storage Default
 <Type>%Storage.Persistent</Type>
 }
 
-/// User defined name
-
 }

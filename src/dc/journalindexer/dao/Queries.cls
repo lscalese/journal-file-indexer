@@ -66,6 +66,16 @@ ClassMethod DistinctExecute(
         Quit $$$OK
     }
 
+    if lowerField = "globalname", DatabaseName '= "" {
+        Set k2 = DatabaseName, k3 = ""
+        For  {
+            Set k3 = $Order($$$zgbldistinct(FileId,k2,k3))
+            Quit:k3=""
+            Set qHandle("Distinct", k3) = ""
+        }
+        Quit $$$OK
+    }
+
     Set node = $Name(@$Name($$$zgbldistinct)@(FileId))
 
     If DatabaseName '= "" Set node = $Name(@node@(DatabaseName))
@@ -83,8 +93,6 @@ ClassMethod DistinctExecute(
 
         Set qHandle("Distinct", $QSubscript(node,FieldPosition)) = ""
     }
-
-    
 
     Quit $$$OK
 }
@@ -110,22 +118,46 @@ ClassMethod DistinctClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = Di
 	Kill qHandle Quit $$$OK
 }
 
-Query SearchRecord(Filter As %DynamicObject) As %Query(CONTAINID = 1, ROWSPEC = "ID:%Integer,File:%String,TypeName:%String,TimeStamp:%TimeStamp,InTransaction:%Boolean,ProcessID:%Integer,DatabaseName:%String,NumberOfValues:%Integer,GlobalNode:%String,Address:%Integer,FormattedOldValue:%String,FormattedNewValue:%String,ExistsOldValue:%Boolean,ExistsNewValue:%Boolean,Position:%Integer") [ SqlProc ]
+Query SearchRecord(
+	Filter As %DynamicObject,
+	PaginateMode As %Boolean = {$$$NO},
+	ResultPerPage As %Integer = 250,
+	StartId As %Integer = 0,
+	Direction As %Integer = 1,
+	KeepOrdered As %Boolean = {$$$YES}) As %Query(CONTAINID = 1, ROWSPEC = "ID:%Integer,File:%String,TypeName:%String,TimeStamp:%TimeStamp,InTransaction:%Boolean,ProcessID:%Integer,DatabaseName:%String,NumberOfValues:%Integer,GlobalNode:%String,Address:%Integer,FormattedOldValue:%String,FormattedNewValue:%String,ExistsOldValue:%Boolean,ExistsNewValue:%Boolean,Position:%Integer") [ SqlProc ]
 {
 }
 
 ClassMethod SearchRecordExecute(
 	ByRef qHandle As %Binary,
-	Filter As %DynamicObject) As %Status
+	pFilter As %DynamicObject,
+	PaginateMode As %Boolean = {$$$NO},
+	ResultPerPage As %Integer = 250,
+	StartId As %Integer = 0,
+	Direction As %Integer = 1,
+	KeepOrdered As %Boolean = {$$$YES}) As %Status
 {
-    If '$IsObject(Filter) Set Filter = {}.%FromJSON(Filter)
+    If '$IsObject(pFilter) {
+        Set Filter = {}.%FromJSON(pFilter)
+    } Else {
+        ; copy the filter to avoid a change in the original object reference
+        Set Filter = {}.%FromJSON(pFilter.%ToJSON())
+    }
 
-    Set sql($Increment(sql)) = "SELECT ID, File, TypeName, TimeStamp, InTransaction, ProcessID, DatabaseName, NumberOfValues, GlobalNode, Address "
-                                _ ", FormattedOldValue, FormattedNewValue, ExistsOldValue, ExistsNewValue, Position "
+    If PaginateMode, +StartId Set Filter.ID = {"Value":(StartId), "Operator":($Select(Direction=1:">",1:"<"))}
+
+    Set:Direction=-1&&PaginateMode&&KeepOrdered sql($Increment(sql)) = "SELECT * FROM ("
+    Set sql($Increment(sql)) = "SELECT"
+    Set:PaginateMode sql($Increment(sql)) = " TOP "_ ResultPerPage
+    Set sql($Increment(sql)) = " ID, File, TypeName, TimeStamp, InTransaction, ProcessID, DatabaseName, NumberOfValues, GlobalNode, Address "
+    Set sql($Increment(sql)) = ", FormattedOldValue, FormattedNewValue, ExistsOldValue, ExistsNewValue, Position "
     Set sql($Increment(sql)) = "FROM dc_journalindexer_data.SetKillRecord "
     Set sql($Increment(sql)) = "WHERE "
     $$$QuitOnError(..SearchQueryBuilder(Filter, .args, .sql))
     
+    ; Trick to retrieve previous record correctly ordered
+    Set:Direction=-1&&PaginateMode sql($Increment(sql)) = " ORDER BY ID DESC) "_$s(KeepOrdered:"ORDER BY ID ASC",1:"")  
+
     If $Get(%zDebug,1) {
         Set strSql = "", k = "" For  s k = $o(sql(k),1,item) Quit:k=""  Set strSql = strSql_item
         Set ^dc.journalindexer("last-sql") = strSql
@@ -264,7 +296,7 @@ ClassMethod SearchQueryBuilder(
     }
 
     /// Condition with Range
-    For key = "Address", "TimeStamp", "SubscriptsSize" {
+    For key = "Address", "TimeStamp", "SubscriptsSize", "ID" {
         Continue:'(Filter.%IsDefined(key) && (Filter.%Get(key).Value '= ""))
 
         Set tmp = Filter.%Get(key)

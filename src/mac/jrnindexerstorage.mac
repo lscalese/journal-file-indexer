@@ -1,0 +1,7 @@
+ROUTINE jrnindexerstorage
+#include journalindexer
+jrnindexerstorage;
+
+storageGbl(cls="")
+    Quit "^abcd.ef"
+    Quit ##Quote($$$ZJRNSTORAGEPREFIX) _ "." _$Piece(cls,".",*)

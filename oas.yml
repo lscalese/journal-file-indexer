@@ -1,0 +1,524 @@
+openapi: '3.0.2'
+info:
+  title: Journal Indexer
+  version: '1.0.0'
+servers:
+  - url: https://127.0.0.1:49160/v1
+tags:
+  - name: Indexer
+    description: Services to index in database a journal file.
+  - name: Restore
+    description: Services dedicated to restore and export data from indexed journals.
+  - name: Developer
+    description: Developer
+  - name: Indexed Journal Information
+paths:
+  /info:
+    get:
+      tags:
+        - Developer
+      description: Give few informations about the backend, $zv, application version, title...
+      operationId: info
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Info'
+  /upload:
+    post:
+      tags:
+        - Indexer
+      operationId: UploadAndIndex
+      description: |-
+        Upload a journal file and index its content in database.  
+        The indexer process can take a while ...
+        This service return a token and you can use it with the service GET /file/progression/{token}
+        to retrieve the status.
+      parameters:
+        - name: runTuneTable
+          in: query
+          required: false
+          schema:
+            type: boolean
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                journalfile:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexerStarted'
+  /serverjrnfile:
+    get:
+      tags:
+        - Indexer
+      operationId: GetServerJournalFiles
+      description: Return the list of journal file on the server.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JrnFileList'
+  /file:
+    post:
+      tags:
+        - Indexer
+      operationId: IndexFile
+      description: |-
+        Index a journal file in database.  
+        The journal must be on the server.  
+        Use /serverjrnfile service to list existing journal file on the server.
+        The indexer process can take a while ...
+        This service return a token and you can use it with the service GET /file/progression/{token}
+        to retrieve the status.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IndexFile'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexerStarted'
+  /file/{fileid}:
+    delete:
+      tags:
+        - Indexed Journal Information
+      operationId: DeleteIndexedFile
+      description: |-
+        Delete an indexed journal in database.
+        It deletes only indexed data in database, NOT the physical journal file.  
+        This application never deletes physical journal file.  
+      parameters:
+        - $ref: '#/components/parameters/fileidpath'
+      responses:
+        '204':
+          description: OK
+        '404':
+          description: NOT FOUND
+    get:
+      tags:
+        - Indexed Journal Information
+      operationId: GetJournalDetails
+      description: |-
+        Get indexed journal informatio by ID.  
+        Use the service /indexedjournals to retrieve the list of indexed journal in database.  
+      parameters:
+        - $ref: '#/components/parameters/fileidpath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexedJrn'
+        '404':
+          description: NOT FOUND
+  /file/progression/{token}:
+    get:
+      tags:
+        - Indexer
+      operationId: GetIndexerProgression
+      description: |-
+        An indexer process can take a while if your journal file is large.
+        The service POST /upload or POST /file return a token.  
+        You can use it to retrieve the status of the process on the server.  
+      parameters:
+        - $ref: '#/components/parameters/progressiontoken'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexerProgression'
+  /indexedjournals:
+    get:
+      tags:
+        - Indexed Journal Information
+      operationId: GetListFiles
+      description: Get the list of indexed journal in database.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexedJrnList'
+  /record/{fileid}/{address}:
+    get:
+      tags:
+        - Indexed Journal Information
+      operationId: GetRecord
+      description: Return a journal record indexed in database.  
+      parameters:
+        - $ref: '#/components/parameters/fileidpath'
+        - $ref: '#/components/parameters/address'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Jrnrecord'
+  /records/{fileid}:
+    get:
+      tags:
+        - Indexed Journal Information
+      operationId: GetRecords
+      parameters:
+        - $ref: '#/components/parameters/fileidpath'
+        - $ref: '#/components/parameters/filterstr'
+        - name: limitrecord
+          description: Number of record maximum to return (default is 250).
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: startid
+          description: If you need to paginate send the startid (default is 0)
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: direction
+          description: 1 to forward and -1 to backward (default is 1)
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Jrnrecordlist'
+  /stats/{fileid}:
+    get:
+      tags:
+        - Indexed Journal Information
+      operationId: GetStats
+      parameters:
+        - $ref: '#/components/parameters/fileidpath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stats'
+  /export/{fileid}:
+    get:
+      tags:
+        - Restore
+      parameters:
+        - $ref: '#/components/parameters/fileidpath'
+        - $ref: '#/components/parameters/filterstr'
+      operationId: Export
+      responses:
+        '200':
+          description: OK
+
+  /restore:
+    post:
+      tags:
+        - Restore
+      operationId: Restore
+      description: Restore Old Value or New Value from indexed journal file.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestoreConfig'
+      responses:
+        '200':
+          description: OK
+  /globals/{fileid}:
+    get:
+      tags:
+        - Indexed Journal Information
+      operationId: GetGlobals
+      description: Return the list of existing globals in an indexed journal.  
+      parameters:
+        - $ref: '#/components/parameters/fileidpath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /databases/{fileid}:
+    get:
+      tags:
+        - Indexed Journal Information 
+      operationId: GetDatabases
+      description: Return the list of existing databases in an indexed journal.  
+      parameters:
+        - $ref: '#/components/parameters/fileidpath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+components:
+  schemas:
+    Info:
+      type: object
+      properties:
+        version:
+          type: string
+        title:
+          type: string
+        zv:
+          type: string
+    IndexFile:
+      type: object
+      properties:
+        path:
+          type: string
+        runTuneTable:
+          type: boolean
+        userDefinedName:
+          type: string
+    JrnFileList:
+      type: array
+      items:
+        type: string
+    IndexedJrnList:
+      type: array
+      items:
+        $ref: '#/components/schemas/IndexedJrn'
+    IndexedJrn:
+      type: object
+      properties:
+        name: 
+          type: string
+        firstRecord:
+          type: string
+        lastRecord:
+          type: string
+        userDefinedName:
+          type: string
+    Jrnrecordlist:
+      type: array
+      items:
+        $ref: '#/components/schemas/Jrnrecord'
+    Jrnrecord:
+      type: object
+      properties:
+        file:
+          type: integer
+        address:
+          type: integer
+        type:
+          type: string
+        prevAddress:
+          type: integer
+        nextAddress:
+          type: integer
+        timestamp:
+          type: string
+        inTransaction:
+          type: boolean
+        processID:
+          type: integer
+        databaseName:
+          type: string
+        globalNode:
+          type: string
+        formattedOldValue:
+          type: string
+        formattedNewValue:
+          type: string
+        existsNewValue:
+          type: boolean
+        existsOldValue:
+          type: boolean
+        position:
+          type: integer
+    Filter:
+      type: object
+      properties:
+        Address:
+          $ref: '#/components/schemas/FilterProperties'
+        DatabaseName:
+          $ref: '#/components/schemas/FilterProperties'
+        GlobalName:
+          $ref: '#/components/schemas/FilterProperties'
+        File:
+          $ref: '#/components/schemas/FilterProperties'
+        InTransaction:
+          $ref: '#/components/schemas/FilterProperties'
+        NewValue:
+          $ref: '#/components/schemas/FilterProperties'
+        OldValue:
+          $ref: '#/components/schemas/FilterProperties'
+        ProcessID:
+          $ref: '#/components/schemas/FilterProperties'
+        Subscripts:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterProperties'
+        TimeStamp:
+          $ref: '#/components/schemas/FilterProperties'
+        Type:
+          $ref: '#/components/schemas/FilterProperties'
+    FilterProperties:
+      type: object
+      properties:
+        Value:
+          type: string
+        Operator:
+          type: string
+        position:
+          type: integer
+        Start:
+          type: string
+        End:
+          type: string
+    RestoreConfig:
+      type: object
+      properties:
+        Filter:
+          $ref: '#/components/schemas/Filter'
+        RestoreValue:
+          type: string
+        RedirectTo:
+          type: string
+    IndexerStarted:
+      type: object
+      properties:
+        Status:
+          type: string
+        Message:
+          type: string
+        PID:
+          type: integer
+        Token:
+          type: string
+    IndexerProgression:
+      type: object
+      properties:
+        Status:
+          type: string
+        Action:
+          type: string
+        FileExists:
+          type: boolean
+        IsValid:
+          type: boolean
+        Load:
+          type: string
+        Flush:
+          type: string
+        BuildIndices:
+          type: string
+        Tune:
+          type: string
+        File:
+          type: string
+    Stats:
+      type: object
+      properties:
+        FileId:
+          type: string
+        Globals:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatsData'
+        Databases:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatsData'
+        PID:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatsData'
+    StatsData:
+      type: object
+      properties:
+        id:
+          type: string
+        Size:
+          type: integer
+        Count:
+          type: integer
+        Details:
+          type: array
+          items:
+            $ref: '#/components/schemas/TypeDetail'
+    TypeDetail:
+      type: object
+      properties:
+        TypeName:
+          type: string
+        Count:
+          type: integer
+  parameters:
+    fileid:
+      name: fileid
+      in: query
+      required: true
+      description: Indexed journal ID.  See GET /indexedjournals to retrieve the list of indexed journal in DB.
+      schema:
+        type: string
+    fileidpath:
+      name: fileid
+      in: path
+      required: true
+      description: Indexed journal ID.  See GET /indexedjournals to retrieve the list of indexed journal in DB.
+      schema:
+        type: string
+    address:
+      name: address
+      in: path
+      required: true
+      description: Indexed jounal record Address.  
+      schema:
+        type: string
+    filter:
+      name: filter
+      in: query
+      required: true
+      description: |-
+        Filter to search indexed journal record.  
+        See the documentation on [GitHub](https://github.com/lscalese/journal-file-indexer)
+      schema:
+        $ref: '#/components/schemas/Filter'
+    filterstr:
+      name: filter
+      description: Must be a stringify /components/schemas/Filter object
+      in: query
+      required: true
+      schema:
+        type: string
+    progressiontoken:
+      name: token
+      in: path
+      required: true
+      schema:
+        type: string

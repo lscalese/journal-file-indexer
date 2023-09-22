@@ -91,6 +91,16 @@ ClassMethod GetJournalFiles(Output sc As %Status) As %DynamicArray
     Return array
 }
 
+ClassMethod GetJournalFile(
+	FileId As %Integer,
+	Output sc As %Status) As %DynamicObject
+{
+    #dim journal As dc.journalindexer.data.File
+    Set journal = ##class(dc.journalindexer.data.File).%OpenId(FileId,,.sc)
+    If '$Isobject(journal) Quit ""
+    Quit {"name":(journal.Name),"firstRecord":(journal.FirstRecord),"lastRecord":(journal.LastRecord),"userDefinedName":(journal.UserDefinedName)}
+}
+
 ClassMethod SetStatsInBuffer(
 	Record As %SYS.Journal.SetKillRecord,
 	ByRef stats As %Binary) As %Status
@@ -186,10 +196,103 @@ ClassMethod GetDistinct(
 
     If '$Quit Quit ""
 
-    Set ptr = 0, array = []
+    Set ptr = 0, array = [] Quit:$Get(list)="" array
     While $ListNext(list, ptr, value) { Do array.%Push(value) }
 
     Quit array
+}
+
+ClassMethod GetStats(JournalID As %Integer) As %DynamicObject
+{
+    Set stats = {"FileId":(JournalID),"Databases":[],"Globals":[], "PID":[]}
+    
+    For tmp = {"key":"gbl","array":(stats.Globals)}, {"key":"db","array":(stats.Databases)}, {"key":"pid","array":(stats.PID)} {
+        
+        Set tResult = ##class(dc.journalindexer.dao.Queries).StatsByFunc(JournalID, tmp.key), cpt = 0
+        If tResult.%SQLCODE < 0 $$$ThrowStatus($$$ERROR($$$SQLError, tResult.%SQLCODE, tResult.%Message))
+
+        While tResult.%Next(.sc) {
+            If $$$ISERR(sc) $$$ThrowStatus(sc)
+            Do tmp.array.%Push({
+                "id": (tResult.%Get("Key")),
+                "Size": (tResult.%Get("Size")),
+                "Count": (tResult.%Get("Hit")),
+                "Details": ({}.%FromJSON(tResult.%Get("TypeJSON")))
+            })
+        }
+    }
+
+    Quit stats
+}
+
+ClassMethod GetRecords(
+	Filter As %DynamicObject,
+	PaginateMode As %Boolean = {$$$NO},
+	ResultPerPage As %Integer = 250,
+	StartId As %Integer = 0,
+	Direction As %Integer = 1,
+	KeepOrdered As %Boolean = {$$$YES}) As %DynamicArray
+{
+    Set tResult = ##class(dc.journalindexer.dao.Queries).SearchRecordFunc(Filter, PaginateMode, ResultPerPage, StartId, Direction)
+
+    If tResult.%SQLCODE < 0 $$$ThrowStatus($$$ERROR($$$SQLError, tResult.%SQLCODE, tResult.%Message))
+
+    Set array = []
+
+    While tResult.%Next(.sc) {
+        If $$$ISERR(sc) $$$ThrowStatus(sc)
+        Do array.%Push({
+            "id" : (tResult.ID),
+            "file": (tResult.File),
+            "type": (tResult.TypeName),
+            "timestamp": (tResult.TimeStamp),
+            "inTransaction": (tResult.InTransaction),
+            "processID": (tResult.ProcessID),
+            "databaseName": (tResult.DatabaseName),
+            "numberOfValues": (tResult.NumberOfValues),
+            "globalNode": (tResult.GlobalNode),
+            "address": (tResult.Address),
+            "formattedOldValue": (tResult.FormattedOldValue),
+            "formattedNewValue": (tResult.FormattedNewValue),
+            "existsOldValue": (tResult.ExistsOldValue),
+            "existsNewValue": (tResult.ExistsNewValue),
+            "position": (tResult.Position)
+        })
+    }
+
+    Quit array
+}
+
+ClassMethod GetRecord(
+	FileId As %Integer,
+	Address As %Integer) As %DynamicObject
+{
+    #dim record As dc.journalindexer.data.Record
+    Set record = ##class(dc.journalindexer.data.Record).FileAddrOpen(FileId,Address)
+    If '$IsObject(record) Quit ""
+    Set dto = {
+        "file":(record.File),
+        "address":(record.Address),
+        "type":(record.TypeName),
+        "prevAddress":(record.PrevAddress),
+        "nextAddress":(record.NextAddress),
+        "timestamp":(record.TimeStamp),
+        "inTransaction":(record.InTransaction),
+        "processID":(record.ProcessID)
+    }
+    If record.%IsA("dc.journalindexer.data.SetKillRecord") Do AlimSetKillRecord
+    Quit dto
+
+AlimSetKillRecord
+    #dim skr As dc.journalindexer.data.SetKillRecord = record
+    Set dto.databaseName = skr.DatabaseName
+    Set dto.globalNode = skr.GlobalNode
+    Set dto.existsNewValue = skr.ExistsNewValue
+    Set dto.existsOldValue = skr.ExistsOldValue
+    Set dto.position = skr.Position
+    Set dto.formattedNewValue = skr.FormattedNewValue
+    Set dto.formattedOldValue = skr.FormattedOldValue
+    Quit
 }
 
 ClassMethod ClearAll()
