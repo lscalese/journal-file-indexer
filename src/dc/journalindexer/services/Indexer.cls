@@ -1,3 +1,5 @@
+Include journalindexer
+
 Class dc.journalindexer.services.Indexer
 {
 
@@ -42,8 +44,8 @@ ClassMethod RunIndex() As %Status
     
     Set currentLastJrnId = $Order(^IRIS.Temp.data.FileD(""),-1)
     
-    Do:'$SYSTEM.Event.Defined(resourceName) $SYSTEM.Event.Create(resourceName)
-    Job ..Index(JournalFile, name, resourceName, "", filter)
+    Do ##class(dc.observer.Event).Start($$$IndexerEvent,.resourceName)
+    Job ..Index(JournalFile, name, "", filter)
     Set PIDIndexer = $ZChild
 
     Write !
@@ -76,7 +78,7 @@ ClassMethod RunIndex() As %Status
 
         If returnState = 1 {
             
-            Set msg = {}.%FromJSON($ListGet(returnList,2))
+            Set msg = {}.%FromJSON($ListGet(returnList,2)).Data
             
             If msg.Action = "Load" {
                 If firstLoad Write !," * Load journal file: "
@@ -123,7 +125,7 @@ ClassMethod RunIndex() As %Status
     }
     Write !
 
-    Do $SYSTEM.Event.Delete(resourceName)
+    Do ##class(dc.observer.Event).Stop($$$IndexerEvent,.resourceName)
 
     If $$$ISERR(sc) Do $SYSTEM.Status.DisplayError(sc)
 
@@ -203,9 +205,10 @@ ClassMethod ProcessAction(
 ClassMethod Index(
 	JournalFile As %String,
 	Name As %String = {##class(%File).GetFilename(JournalFile)},
-	Notify As %String = "",
 	Output FileId As %Integer = "",
-	ApplyZJRNFILT As %Boolean = {$$$NO}) As %Status
+	ApplyZJRNFILT As %Boolean = {$$$NO},
+	Token As %String = "",
+	deleteFileAfterIndex As %Boolean = {$$$NO}) As %Status
 {
     #dim journal As %SYS.Journal.File
     #dim jrnRecord As %SYS.Journal.Record
@@ -214,8 +217,7 @@ ClassMethod Index(
 
     If ApplyZJRNFILT, $Data(^ROUTINE("ZJRNFILT")) Set applyFilter = $$$YES
 
-    Set progression = {"Status":"In Progress","FileExists":"","IsValid":"","Load":0,"Flush":"","BuildIndices":"","Action":"FE","Message":""}
-    ;Set msg = {"Action" : "File Exists", "Status" : "", "Message" : "", "Journal": {"FirstAddress":"", "LastAddress" : "", "CurrentAddress": ""}}
+    Set progression = {"Status":"In Progress","FileExists":"","IsValid":"","Load":0,"Flush":"","BuildIndices":"","Action":"FE","Message":"","JournalFile":(JournalFile)}
     If '##class(%File).Exists(JournalFile) Set JournalFile = JournalFile _ "z"     
     If '##class(%File).Exists(JournalFile) Set sc = $$$ERROR($$$GeneralError, "File does not exist."),progression.FileExists = $$$NO Do EventSignalStatus Quit sc
     Set progression.FileExists = $$$YES Do EventSignal
@@ -259,7 +261,7 @@ ClassMethod Index(
 
         While $IsObject(jrnRecord) {
             
-            Set:Notify'="" progression.Load = $Normalize(jrnRecord.Address/lastAddress*100,2)
+            Set progression.Load = $Normalize(jrnRecord.Address/lastAddress*100,2)
 
             If applyFilter {
                 Set restmode = 1
@@ -294,6 +296,22 @@ ClassMethod Index(
         Set progression.Action = "DO" Do EventSignal
         Job ##class(dc.journalindexer.services.Indexer).DeleteOld()
 
+        If deleteFileAfterIndex {
+
+            ; Delete is allowed only for uploaded journal file, check the log to avoid a mistake ...
+            Do ##class(%SYS.Journal.History).LoadLog(, .list)
+            Set key = "", found = $$$NO
+            
+            For  {
+                Set key = $Order(list(key), 1 ,value)
+                Quit:key=""
+                Set found = $Piece(value, ",", 2) = JournalFile
+                Quit:found
+            }
+
+            If 'found, ##class(%File).Exists(JournalFile) Do ##class(%File).Delete(JournalFile)
+        }
+
     } Catch ex {
         Set sc = ex.AsStatus()
     }
@@ -310,8 +328,8 @@ ClassMethod Index(
     Return sc
 
 EventSignal
-    Quit:Notify=""
-    Do $SYSTEM.Event.Signal(Notify, progression.%ToJSON())
+    Set:Token'="" progression.MessageType="INDEXER", str = progression.%ToJSON(), ^dc.journalindexer.token(Token) = str
+    Do ##class(dc.observer.Manager).Notify($$$IndexerEvent,progression)
     Quit
 EventSignalStatus
     Set progression.Status = "ERR", progression.Message = $SYSTEM.Status.GetOneErrorText(sc)
@@ -416,109 +434,6 @@ ClassMethod CheckAndCleanTempFiles() As %Status
     }
 
     Return sc
-}
-
-ClassMethod RunIndexFromRESTCall(
-	JournalFile As %String,
-	runTuneTable As %Boolean,
-	userDefinedName As %String = {##class(%File).GetFilename(JournalFile)},
-	useJrnFilter As %Boolean = {$$$NO},
-	resourceName As %String,
-	deleteFileAfterIndex As %Boolean = {$$$NO}) As %Status
-{
-    Set sc = $$$OK, PIDIndexer = ""
-    Try{
-        Set:userDefinedName="" userDefinedName = ##class(%File).GetFilename(JournalFile)
-    
-        Do:$SYSTEM.Event.Defined(resourceName) $SYSTEM.Event.Delete(resourceName)
-        Do $SYSTEM.Event.Create(resourceName)
-
-        Job ..Index(JournalFile,userDefinedName,resourceName,"",useJrnFilter)::2
-        If '$Test {
-            Set sc = $$$ERROR($$$GeneralError,"Fail to start job Index.")
-            Set progression = {"Status":"ERR", "Message":($SYSTEM.Status.GetOneErrorText(sc))}
-            Do $SYSTEM.Event.Delete(resourceName)
-            $$$ThrowStatus(sc)
-        } Else {
-            Set PIDIndexer = $ZChild
-        }
-
-        For  {
-            
-            Set returnList = $SYSTEM.Event.WaitMsg(resourceName, 2)
-            
-            Set returnState = $ListGet(returnList, 1)
-
-            If returnState = 1 {
-                
-                Set progression = {}.%FromJSON($ListGet(returnList,2))
-
-                If progression.Status = "ERR" Set sc = $$$ERROR($$$GeneralError,progression.Message) Do Send Quit
-
-                If progression.Status="Done" {
-                    If 'runTuneTable Do Send Quit
-                    Set progression.Status = "In Progress"
-                    Set progression.Action = "Tune"
-                    Set progression.Message = ""
-                    Do Send
-                    Set sc = $SYSTEM.SQL.Stats.Table.GatherSchemaStats("dc_journalindexer_data")
-                    Set progression.Tune = $Select($$$ISOK(sc):"OK",1:$SYSTEM.Status.GetOneErrorText(sc))
-                    Set progression.Status = $Select($$$ISOK(sc):"Done",1:"ERR")
-                    Set progression.Action = "END"
-                    Set progression.Message = "Done with status : "_progression.Tune
-                    Do Send
-                    Quit
-                }
-
-                Do Send
-
-                Continue
-            }
-
-            If returnState = -1 {
-                Set sc = $$$ERROR($$$GeneralError, "Ressource deleted.") 
-                Set progression.Status = "ERR"
-                Set progression.Message = $SYSTEM.Status.GetOneErrorText(sc)
-                Do Send
-                Quit
-            }
-
-            If returnState = 0, '##class(%SYS.ProcessQuery).%ExistsId(PIDIndexer) {
-                Set sc = $$$ERROR($$$GeneralError, "Index process not found")
-                Set progression.Status = "ERR"
-                Set progression.Message = $SYSTEM.Status.GetOneErrorText(sc)
-                Do Send
-                Quit 
-            }
-            
-        }
-        Do $SYSTEM.Event.Delete(resourceName)
-    } Catch ex {
-        Set sc = ex.AsStatus()
-        Set ^last.err = $zdt($h,3,1) _ " " _ $SYSTEM.Status.GetErrorText(sc)
-    }
-    
-    If 'deleteFileAfterIndex Return sc
-
-    ; Delete only for uploaded journal file, check the log to avoid a mistake ...
-    Do ##class(%SYS.Journal.History).LoadLog(, .list)
-    Set key = "", found = $$$NO
-    
-    For  {
-        Set key = $Order(list(key), 1 ,value)
-        Quit:key=""
-        Set found = $Piece(value, ",", 2) = JournalFile
-        Quit:found
-    }
-
-    If 'found, ##class(%File).Exists(JournalFile) Do ##class(%File).Delete(JournalFile)
-
-    Return sc
-
-Send
-    Set progression.MessageType="INDEXER", str = progression.%ToJSON(), ^dc.journalindexer.token(resourceName) = str
-    Do ##class(dc.journalindexer.WebSocket).BroadcastMessage(str) 
-    Quit
 }
 
 }

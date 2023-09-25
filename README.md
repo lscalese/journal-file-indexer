@@ -14,6 +14,16 @@ The log file search functionality integrated into the management portal is curre
 
 ## Release note
 
+**Version 0.5.0**
+
+New features:
+ * Open API Specification.
+ * REST services for all existing features.  
+ * WebSocket to listen indexer progression.
+
+Improvements:
+ * Event management to attach an observer. 
+
 **Version 0.4.0**
 
 New features:

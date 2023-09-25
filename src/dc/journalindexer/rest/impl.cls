@@ -1,3 +1,5 @@
+Include journalindexer
+
 Class dc.journalindexer.rest.impl Extends %REST.Impl [ ProcedureBlock ]
 {
 
@@ -87,9 +89,11 @@ ClassMethod GetStats(messageRequest As dc.journalindexer.rest.requests.GetStats)
 /// Service implemntation for post /file
 ClassMethod IndexFile(messageRequest As dc.journalindexer.rest.requests.IndexFile) As %Status
 {
-	Set token = $tr($SYSTEM.Encryption.Base64Encode($tr($zdt($h,3,1),"-: "),1),"=")
+	Set token = ##class(dc.observer.Event).GenResourceName($$$IndexerEvent)
 	Set ^dc.journalindexer.token(token) = {"Status":"In Progress","Action":"Starting"}.%ToJSON()
-	Job ##class(dc.journalindexer.services.Indexer).RunIndexFromRESTCall(messageRequest.IndexFile.path,messageRequest.IndexFile.runTuneTable,messageRequest.IndexFile.userDefinedName,0,token)::2
+	Set userDefinedName = messageRequest.IndexFile.userDefinedName
+	Set:userDefinedName="" userDefinedName = ##class(%File).GetFilename(messageRequest.IndexFile.path)
+    Job ##class(dc.journalindexer.services.Indexer).Index(messageRequest.IndexFile.path,userDefinedName,"",$$$NO,token,$$$NO)::2
 	If '$Test Set sc = $$$ERROR($$$GeneralError,"Fail to start indexer job.") Kill ^dc.journalindexer.token(token) $$$ThrowStatus(sc)
 	Quit {"Status":"Started","PID":($ZChild),"Token":(token),"Message":""}
 }
@@ -102,7 +106,7 @@ ClassMethod UploadAndIndex(messageRequest As dc.journalindexer.rest.requests.Upl
 	Set file = ##class(%Stream.FileBinary).%New()
 	Do file.LinkToFile(filePath), file.CopyFromAndSave(messageRequest.body) kill file
 	Set ^dc.journalindexer.token(token) = {"Status":"In Progress","Action":"Starting"}.%ToJSON()
-	Job ##class(dc.journalindexer.services.Indexer).RunIndexFromRESTCall(filePath,messageRequest.queryrunTuneTable,fileName,$$$NO,token,$$$YES)::5
+	Job ##class(dc.journalindexer.services.Indexer).Index(filePath,fileName,"",$$$NO,token,$$$YES)::2
 	If '$Test Set sc = $$$ERROR($$$GeneralError,"Fail to start indexer job.") Kill ^dc.journalindexer.token(token) $$$ThrowStatus(sc)
 	Quit {"Status":"Started","PID":($ZChild),"Token":(token),"Message":""}
 }

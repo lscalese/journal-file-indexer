@@ -8,9 +8,11 @@
       <Packaging>module</Packaging>
       <SourcesRoot>src</SourcesRoot>
       <Resource Name="dc.journalindexer.PKG"/>
+      <Resource Name="dc.observer.PKG"/>
       <Resource Name="JRNINDEXER.MAC" Directory="mac/"/>
       <Resource Name="JRNINDEXERFW.MAC" Directory="mac/"/>
       <Resource Name="journalindexer.INC" Directory="inc/"/>
+      <Resource Name="eventobserver.INC" Directory="inc/"/>
       <Invoke Class="dc.journalindexer.services.Config" Method="Initialize"></Invoke>
       <CSPApplication 
         Url="/jrnindexer/api"
