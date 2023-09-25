@@ -29,13 +29,13 @@ Method OnAfterAllTests() As %Status
 Method Test01IndexFile() As %Status
 {
     Do ..LogMessage("Index journal file " _ ..JournalFile)
-    Set sc = ##class(dc.journalindexer.services.Indexer).Index(..JournalFile,"unit_test_Test01IndexFile","",.FileId)
+    Set sc = ##class(dc.journalindexer.services.Indexer).Index(..JournalFile,"unit_test_Test01IndexFile",.FileId)
     Set:$$$ISOK(sc) ..FileId = FileId
 
     Do $$$AssertStatusOK(sc, "Insert journal in database using Index method")
 
     Set n = ..#NSETKILL
-    Do ..LogMessage($$$FormatText("Journal must contains %1 SET and %2 KILL", n, n))
+    Do ..LogMessage($$$FormatText("Journal %1 must contains %2 SET and %3 KILL", ..FileId, n, n))
 
     Set query = "SELECT COUNT(*) As cpt FROM dc_journalindexer_data.SetKillRecord where file = ? and globalname = ? and typeName = ? "
 

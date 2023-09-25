@@ -30,7 +30,7 @@ Method OnAfterAllTests() As %Status
 Method Test001IndexFile() As %Status
 {
     Do ..LogMessage("Index journal file " _ ..JournalFile)
-    Set sc = ##class(dc.journalindexer.services.Indexer).Index(..JournalFile,"unit_test_TestRestore","",.FileId)
+    Set sc = ##class(dc.journalindexer.services.Indexer).Index(..JournalFile,"unit_test_TestRestore",.FileId)
     Set:$$$ISOK(sc) ..FileId = FileId
     Do $$$AssertStatusOK(sc, "Insert journal in database using Index method")
     Quit sc

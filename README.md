@@ -176,13 +176,11 @@ Do ##class(dc.journalindexer.services.Config).SetConfig("MaxJournalRetention", 5
 #### Programmatically
   
 ```objectscript
-Set sc = ##class(dc.journalindexer.services.Indexer).Index("/usr/irissys/mgr/journal/20230805.004", "20230805.004", "")
+Set sc = ##class(dc.journalindexer.services.Indexer).Index("/usr/irissys/mgr/journal/20230805.004", "20230805.004")
 ```
 
 The first argument is the path of the journal file to store in database.  
 The second is optional, this is the name of the journal file (by default: `##class(%File).GetFilename(JournalFile)`).  
-The third is also optional, this is the ressource name if you would like to wake up process with `$SYSTEM.Event`. It's used by `RunIndex` to show the progression.  
-See the [official documentation](https://docs.intersystems.com/latest/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&PRIVATE=1&CLASSNAME=%25SYSTEM.Event) for more information about `$SYSTEM.Event`.  
 
 ### View indexed data
 
