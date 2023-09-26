@@ -1,14 +1,13 @@
-Class dc.observer.Abstract [ Abstract ]
+Class dc.observer.TriggerAbstract Extends %RegisteredObject
 {
+
+Parameter EVENTTYPE;
 
 ClassMethod Update(
 	EventObject As %DynamicObject,
 	Data As %DynamicObject,
 	Context As %DynamicObject) As %Status
 {
-	;Set EventType = EventObject.EventType
-    ;Set EventName = EventObject.EventName
-	;If EventName = "OnComplete" do ...
 	Quit $$$OK
 }
 

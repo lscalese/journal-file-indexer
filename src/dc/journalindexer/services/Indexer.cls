@@ -44,7 +44,9 @@ ClassMethod RunIndex() As %Status
     
     Set currentLastJrnId = $Order(^IRIS.Temp.data.FileD(""),-1)
     
-    Do ##class(dc.observer.Event).Start($$$IndexerEvent,.resourceName)
+    Set indexerListener = ##class(dc.journalindexer.events.IndexerListener).%New()
+    Do indexerListener.OnStartListen()
+
     Job ..Index(JournalFile, name, "", filter)
     Set PIDIndexer = $ZChild
 
@@ -52,6 +54,8 @@ ClassMethod RunIndex() As %Status
     Write !, "Index process started Type (P)ause, (R)esume, (C)ancel."
 
     Set state = "running", firstLoad = $$$YES
+
+    
 
     For  {
 
@@ -72,13 +76,11 @@ ClassMethod RunIndex() As %Status
             }
         }
 
-        Set returnList = $SYSTEM.Event.WaitMsg(resourceName, 2)
-        
-        Set returnState = $ListGet(returnList, 1)
+        Set returnState = indexerListener.Wait(.EventObject, 2)
 
         If returnState = 1 {
             
-            Set msg = {}.%FromJSON($ListGet(returnList,2)).Data
+            Set msg = EventObject.Data
             
             If msg.Action = "Load" {
                 If firstLoad Write !," * Load journal file: "
@@ -125,7 +127,7 @@ ClassMethod RunIndex() As %Status
     }
     Write !
 
-    Do ##class(dc.observer.Event).Stop($$$IndexerEvent,.resourceName)
+    Do indexerListener.OnStopListen()
 
     If $$$ISERR(sc) Do $SYSTEM.Status.DisplayError(sc)
 
