@@ -21,6 +21,16 @@ Method OnStartListen(Context As %DynamicObject = {{}}) As %Status
     Quit $$$OK
 }
 
+Method Listen() As %Status [ Abstract ]
+{
+    /// Do ..OnStartListen()
+    /// ...
+    /// Set returncode = ..Wait(.EventObject)
+    /// ...
+    /// Do OnStopListen()
+    Quit $$$OK
+}
+
 Method Wait(
 	Output Event As %DynamicObject,
 	TimeOut As %Integer = {..#WAITTIMEOUT}) As %Integer

@@ -1,4 +1,4 @@
-Class dc.observer.TriggerAbstract Extends %RegisteredObject
+Class dc.observer.TriggerAbstract [ Abstract ]
 {
 
 Parameter EVENTTYPE;
