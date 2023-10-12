@@ -25,19 +25,44 @@ Method Listen() As %Status [ Abstract ]
 {
     /// Do ..OnStartListen()
     /// ...
-    /// Set returncode = ..Wait(.EventObject)
+    /// Set result = $SYSTEM.Event.WaitMsg(..ResourceName, TimeOut), returnCode = $ListGet(result,1)
     /// ...
     /// Do OnStopListen()
     Quit $$$OK
 }
 
-Method Wait(
+Method Wait(TimeOut As %Integer = {..#WAITTIMEOUT}) As %Integer
+{
+    Set result = $SYSTEM.Event.WaitMsg(..ResourceName, TimeOut), returnCode = $ListGet(result,1)
+
+    If returnCode = 0 || (returnCode = -1) Quit returnCode
+    
+    Set Event = {}.%FromJSON($ListGet(result,2))
+    Set Data = Event.Data, Context = Event.Context
+    Do Event.%Remove("Data"), Event.%Remove("Context")
+    Do ..Update(Event, Data, Context)
+
+    Quit returnCode
+}
+
+Method Update(
+	EventObject As %DynamicObject,
+	Data As %DynamicObject,
+	Context As %DynamicObject) As %Status
+{
+    Quit $$$OK
+}
+
+Method WaitEvent(
 	Output Event As %DynamicObject,
 	TimeOut As %Integer = {..#WAITTIMEOUT}) As %Integer
 {
-    Set result = $SYSTEM.Event.WaitMsg(..ResourceName, TimeOut), Event = {}
-    Set returnCode = $ListGet(result,1)
-    If returnCode = 1 Set Event = {}.%FromJSON($ListGet(result, 2)) Quit returnCode
+    Set result = $SYSTEM.Event.WaitMsg(..ResourceName, TimeOut), returnCode = $ListGet(result,1), Event = ""
+
+    If returnCode = 0 || (returnCode = -1) Quit returnCode
+    
+    Set Event = {}.%FromJSON($ListGet(result,2))
+    
     Quit returnCode
 }
 

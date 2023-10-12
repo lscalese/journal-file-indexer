@@ -76,7 +76,7 @@ ClassMethod RunIndex() As %Status
             }
         }
 
-        Set returnState = indexerListener.Wait(.EventObject, 2)
+        Set returnState = indexerListener.WaitEvent(.EventObject, 2)
 
         If returnState = 1 {
             
@@ -219,7 +219,7 @@ ClassMethod Index(
 
     If ApplyZJRNFILT, $Data(^ROUTINE("ZJRNFILT")) Set applyFilter = $$$YES
 
-    Set progression = {"Status":"In Progress","FileExists":"","IsValid":"","Load":0,"Flush":"","BuildIndices":"","Action":"FE","Message":"","JournalFile":(JournalFile)}
+    Set progression = {"Status":"In Progress","FileExists":"","IsValid":"","Load":0,"Flush":"","BuildIndices":"","Action":"FE","Message":"","JournalFile":(JournalFile),"Token":(Token)}
     If '##class(%File).Exists(JournalFile) Set JournalFile = JournalFile _ "z"     
     If '##class(%File).Exists(JournalFile) Set sc = $$$ERROR($$$GeneralError, "File does not exist."),progression.FileExists = $$$NO Do EventSignalStatus Quit sc
     Set progression.FileExists = $$$YES Do EventSignal
@@ -363,6 +363,7 @@ ClassMethod IndexStream(
 /// ex: if max = 5, only 5 most recent journals will be keep.<br/>
 ClassMethod DeleteOld(Max As %Integer = {##class(dc.journalindexer.services.Config).MaxJournalRetention()}) As %Status
 {
+
     Set LastId = ""
     For  Set LastId = $Order(^IRIS.Temp.data.FileD(LastId),-1) Quit:$Increment(i)=Max||(LastId="")
     
@@ -380,10 +381,13 @@ ClassMethod DeleteOld(Max As %Integer = {##class(dc.journalindexer.services.Conf
 /// Delete journal indexed in databaseJob ..Index(JournalFile, userDefinedName, resourceName, "", useJrnFilter) 
 ClassMethod DeleteIndexedJournalData(JournalId As %Integer) As %Status
 {
+    Lock +%zLockDelJournal(JournalId):2
+    If '$Test $$$ThrowStatus($$$ERROR($$$GeneralError, "Delete already in progress for " _ JournalId))
+
     Set sc = $$$OK
-
+    
     Do ..StopJournal(.transactionMode, .autoCommitMode)
-
+        
     Try {
         
         Set tResult = ##class(%SQL.Statement).%ExecDirect(.statement, "DELETE %NOLOCK FROM dc_journalindexer_data.Record WHERE File = ?", JournalId)
@@ -395,6 +399,8 @@ ClassMethod DeleteIndexedJournalData(JournalId As %Integer) As %Status
     } Catch ex {
         Set sc = $$$ADDSC(sc,ex.AsStatus())
     }
+    
+    Lock -%zLockDelJournal(JournalId)
 
     Do ..RestoreJournalState(transactionMode, autoCommitMode)
 

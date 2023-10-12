@@ -86,7 +86,21 @@ ClassMethod GetJournalFiles(Output sc As %Status) As %DynamicArray
 	Set tResult = tStatement.%Execute()
 	If tResult.%SQLCODE'=0, tResult.%SQLCODE '= 100 Return $$$ERROR($$$SQLError, tResult.%SQLCODE, tResult.%Message)
     
-    While tResult.%Next() { Do array.%Push({}.%FromJSON(tResult.%Get("RecordJSON"))) }
+    While tResult.%Next() { 
+        ; exclude indexed journal currently in delete processing.
+        If '$Data(^$Lock($Name(%zLockDelJournal(tResult.%Get("ID"))))) {
+            
+            Set (first,last) = ""
+            Set tFile = {}.%FromJSON(tResult.%Get("RecordJSON"))
+
+            Set:##class(dc.journalindexer.data.Record).FileAddrExists(tFile.ID, tFile.FirstRecord, .id) first = ##class(dc.journalindexer.data.Record).TimeStampGetStored(id)
+            Set:##class(dc.journalindexer.data.Record).FileAddrExists(tFile.ID, tFile.LastRecord, .id) last = ##class(dc.journalindexer.data.Record).TimeStampGetStored(id)
+
+            Set tFile.FirstRecordTS = first, tFile.LastRecordTS = last
+
+            Do array.%Push(tFile) 
+        }
+    }
 
     Return array
 }
@@ -98,7 +112,19 @@ ClassMethod GetJournalFile(
     #dim journal As dc.journalindexer.data.File
     Set journal = ##class(dc.journalindexer.data.File).%OpenId(FileId,,.sc)
     If '$Isobject(journal) Quit ""
-    Quit {"name":(journal.Name),"firstRecord":(journal.FirstRecord),"lastRecord":(journal.LastRecord),"userDefinedName":(journal.UserDefinedName)}
+
+    Set (first,last) = ""
+
+    Set:##class(dc.journalindexer.data.Record).FileAddrExists(journal.%Id(), journal.FirstRecord, .id) first = ##class(dc.journalindexer.data.Record).TimeStampGetStored(id)
+    Set:##class(dc.journalindexer.data.Record).FileAddrExists(journal.%Id(), journal.LastRecord, .id) last = ##class(dc.journalindexer.data.Record).TimeStampGetStored(id)
+    
+    Quit {  "Name":(journal.Name),
+            "FirstRecord":(journal.FirstRecord),
+            "FirstRecordTS":(first),
+            "LastRecord":(journal.LastRecord),
+            "LastRecordTS":(last),
+            "UserDefinedName":(journal.UserDefinedName)
+        }
 }
 
 ClassMethod SetStatsInBuffer(
@@ -204,7 +230,7 @@ ClassMethod GetDistinct(
 
 ClassMethod GetStats(JournalID As %Integer) As %DynamicObject
 {
-    Set stats = {"FileId":(JournalID),"Databases":[],"Globals":[], "PID":[]}
+    Set stats = {"FileId":(JournalID),"UserDefinedName":(##class(dc.journalindexer.data.File).UserDefinedNameGetStored(JournalID)),"Databases":[],"Globals":[], "PID":[]}
     
     For tmp = {"key":"gbl","array":(stats.Globals)}, {"key":"db","array":(stats.Databases)}, {"key":"pid","array":(stats.PID)} {
         
@@ -215,7 +241,7 @@ ClassMethod GetStats(JournalID As %Integer) As %DynamicObject
             If $$$ISERR(sc) $$$ThrowStatus(sc)
             Do tmp.array.%Push({
                 "id": (tResult.%Get("Key")),
-                "Size": (tResult.%Get("Size")),
+                "Size": (+tResult.%Get("Size")),
                 "Count": (tResult.%Get("Hit")),
                 "Details": ({}.%FromJSON(tResult.%Get("TypeJSON")))
             })

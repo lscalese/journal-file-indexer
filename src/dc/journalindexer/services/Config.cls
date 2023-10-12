@@ -83,6 +83,24 @@ ClassMethod Initialize() As %Status [ CodeMode = objectgenerator ]
     Return $$$OK
 }
 
+ClassMethod InitWebApps() As %Status
+{
+    New $Namespace
+    Set $Namespace = "%SYS"
+    Set sc = $$$OK
+
+    Do ##class(Security.Applications).Get("/jrnindexer/api", .properties)
+
+    Set properties("JWTAuthEnabled") = 1
+    Set properties("JWTAccessTokenTimeout") = 3600
+    Set properties("JWTRefreshTokenTimeout") = 7200
+    Set:properties("MatchRoles")'[":%All" properties("MatchRoles") = properties("MatchRoles") _ ":%All"
+
+    Set sc =  ##class(Security.Applications).Modify("/jrnindexer/api", .properties)
+    
+    Quit sc
+}
+
 XData Description [ MimeType = application/json ]
 {
 {

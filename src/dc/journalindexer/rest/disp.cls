@@ -9,6 +9,8 @@ Parameter IgnoreWrites = 1;
 
 Parameter SpecificationClass = "dc.journalindexer.rest.Spec";
 
+Parameter HandleCorsRequest = 1;
+
 /// Process request delete /file/{fileid}
 ClassMethod DeleteIndexedFile(fileid As %String) As %Status
 {

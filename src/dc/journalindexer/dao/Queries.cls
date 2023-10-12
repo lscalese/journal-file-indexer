@@ -1,9 +1,9 @@
 Class dc.journalindexer.dao.Queries
 {
 
-Query JournalFile() As %SQLQuery(ROWSPEC = "RecordJSON:%String") [ SqlProc ]
+Query JournalFile() As %SQLQuery(ROWSPEC = "ID:%Integer,RecordJSON:%String") [ SqlProc ]
 {
-SELECT JSON_OBJECT('ID': ID, 'FirstRecord': FirstRecord, 'LastRecord': LastRecord, 'Name' : Name, 'UserDefinedName' :UserDefinedName) As RecordJSON
+SELECT ID, JSON_OBJECT('ID': ID, 'FirstRecord': FirstRecord, 'LastRecord': LastRecord, 'Name' : Name, 'UserDefinedName' :UserDefinedName) As RecordJSON
 FROM dc_journalindexer_data.File
 }
 

@@ -26,7 +26,7 @@ ClassMethod buildTypeJSON(
 	StatsID As %Integer,
 	Output Type As %DynamicObject) As %String
 {
-    Set type = {}
+    #dim type As %DynamicObject = {}
     If '$Data(^IRIS.Temp.data.StatsD(StatsID, "Type")) Quit ""
     
     Set typeName = ""
@@ -35,6 +35,8 @@ ClassMethod buildTypeJSON(
         Quit:typeName=""
         Do type.%Set(typeName, value)
     }
+
+    For key = "SET", "KILL", "ZKILL" Do:'type.%IsDefined(key) type.%Set(key, 0)
 
     If '$Quit Quit ""
 

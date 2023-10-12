@@ -9,8 +9,8 @@ Parameter ExposeServerExceptions = 1;
 ClassMethod DeleteIndexedFile(messageRequest As dc.journalindexer.rest.requests.DeleteIndexedFile) As %Status
 {
 	If '##class(dc.journalindexer.data.File).%ExistsId(messageRequest.pathfileid) Do ..%SetStatusCode(404) Quit ""
-	Set sc = ##class(dc.journalindexer.services.Indexer).DeleteIndexedJournalData(messageRequest.pathfileid)
-	If $$$ISERR(sc) $$$ThrowStatus(sc)
+	Job ##class(dc.journalindexer.services.Indexer).DeleteIndexedJournalData(messageRequest.pathfileid)
+	;If $$$ISERR(sc) $$$ThrowStatus(sc)
 	Do ..%SetStatusCode(204)
 	Quit ""
 }
@@ -46,13 +46,16 @@ ClassMethod GetJournalDetails(messageRequest As dc.journalindexer.rest.requests.
 /// Service implemntation for get /indexedjournals
 ClassMethod GetListFiles(messageRequest As dc.journalindexer.rest.requests.GetListFiles) As %Status
 {
-	Quit ##class(dc.journalindexer.dao.JournalDataDAO).GetJournalFiles()
+	s ^lsc=$zdt($h,3,1)
+	Set response = ##class(dc.journalindexer.dao.JournalDataDAO).GetJournalFiles()
+	s ^lsc(1) = response.%ToJSON()
+	Quit response
 }
 
 /// Service implemntation for get /record/{fileid}/{address}
 ClassMethod GetRecord(messageRequest As dc.journalindexer.rest.requests.GetRecord) As %Status
 {
-	Set record = ##class(dc.journalindexer.dao.JournalDataDAO).GetRecord(messageRequest.queryfileid,messageRequest.queryaddress)
+	Set record = ##class(dc.journalindexer.dao.JournalDataDAO).GetRecord(messageRequest.pathfileid,messageRequest.pathaddress)
 	If $IsObject(record) Quit record
 	Do ..%SetStatusCode(404)
 	Quit {"message" : "Record not found."}
@@ -89,7 +92,7 @@ ClassMethod GetStats(messageRequest As dc.journalindexer.rest.requests.GetStats)
 /// Service implemntation for post /file
 ClassMethod IndexFile(messageRequest As dc.journalindexer.rest.requests.IndexFile) As %Status
 {
-	Set token = ##class(dc.observer.Event).GenResourceName($$$IndexerEvent)
+	Set token = $tr($SYSTEM.Encryption.Base64Encode($tr($zdt($h,3,1),"-: "),1),"=")
 	Set ^dc.journalindexer.token(token) = {"Status":"In Progress","Action":"Starting"}.%ToJSON()
 	Set userDefinedName = messageRequest.IndexFile.userDefinedName
 	Set:userDefinedName="" userDefinedName = ##class(%File).GetFilename(messageRequest.IndexFile.path)

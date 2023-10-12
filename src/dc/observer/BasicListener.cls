@@ -21,13 +21,7 @@ Method Listen() As %Status
     $$$QuitOnError(..OnStartListen())
     Try {
         Write:..Verbose !,$zdt($h,3,1)," + Type < ctrl+c > to stop listening."
-        For  {
-            Set code = ..Wait(.EventObject)
-            If 'code Continue
-            If code = -1 $$$ThrowStatus($$$ERROR($$$GeneralError,$$$FormatText("Resource %1 deleted.",..ResourceName)))
-            Set sc = ..OnNotify(EventObject)
-            If $$$ISERR(sc) $$$ThrowStatus(sc)
-        }
+        For  If ..Wait() = -1 $$$ThrowStatus($$$ERROR($$$GeneralError,$$$FormatText("Resource %1 deleted.",..ResourceName)))
     } Catch Ex {
         If Ex.Name '[ "<INTERRUPT>" Set sc = Ex.AsStatus()
         If ..Verbose, $$$ISERR(sc) Do $SYSTEM.Status.DisplayError(sc)
@@ -36,10 +30,19 @@ Method Listen() As %Status
     Quit sc
 }
 
-Method OnNotify(Event As %DynamicObject) As %Status
+Method Update(
+	Event As %DynamicObject,
+	Data As %DynamicObject,
+	Context As %DynamicObject) As %Status
 {
-    Do ##class(%JSON.Formatter).%New().FormatToString(Event.%ToJSON(), .out) 
-    Write !,$ZDateTime($Horolog, 3, 1), " = Event received: ", !, out
+    Set dt = $ZDateTime($Horolog, 3, 1)
+    Write:..Verbose !,dt," + Update received!"
+    Write !,dt, " = Event : ", !
+    Do ##class(%JSON.Formatter).%New().Format(Event)
+    Write !,dt, " = Conext : ", !
+    Do ##class(%JSON.Formatter).%New().Format(Context)
+    Write !,dt, " = Data : ", !
+    Do ##class(%JSON.Formatter).%New().Format(Data)
     Quit $$$OK
 }
 
