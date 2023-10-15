@@ -1,0 +1,240 @@
+  <header class="pb-3 mb-4 border-bottom px-3 pt-3">
+  <a  class="d-flex align-items-center text-dark text-decoration-none">
+    <span class="fs-4">Stats of journal {{ stats? stats.UserDefinedName:'' }}</span>
+  </a>
+</header>
+
+<ul class="nav nav-tabs" id="myTab" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane" type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">Globals</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">Database</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane" type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false">Process ID</button>
+  </li>
+</ul>
+<div class="tab-content" id="myTabContent">
+  <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
+    <table class="table table-striped" *ngIf="stats; else noData">
+      <thead class="position-sticky" style="top: 0">
+        <tr>
+          <th>#</th>
+          <th>Global Reference</th>
+          <th>Count</th>
+          <th>SET</th>
+          <th>KILL</th>
+          <th>ZKILL</th>
+          <th>Others</th>
+          <th>Size</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let subject of stats.Globals;let position = index">
+          <td>{{ position + 1 }}</td>
+          <td>{{ subject.id }}</td>
+          <td>{{ subject.Count }}</td>
+          <td>{{ subject.Details.SET }}</td>
+          <td>{{ subject.Details.KILL }}</td>
+          <td>{{ subject.Details.ZKILL }}</td>
+          <td>{{ getOtherCount(subject) }}</td>
+          <td class="text-center"> {{ subject.Size | PrettyBytes }}</td>
+          <td>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                    data-bs-target="#exampleModal" (click)="this.selectedStatsData=subject">
+              Details
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #noData>No stats data</ng-template>
+  </div>
+  <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
+    <table class="table table-striped" *ngIf="stats; else noData">
+      <thead class="position-sticky" style="top: 0">
+        <tr>
+          <th>#</th>
+          <th>Database</th>
+          <th>Count</th>
+          <th>SET</th>
+          <th>KILL</th>
+          <th>ZKILL</th>
+          <th>Others</th>
+          <th>Size</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let subject of stats.Databases;let position = index">
+          <td>{{ position + 1 }}</td>
+          <td>{{ subject.id }}</td>
+          <td>{{ subject.Count }}</td>
+          <td>{{ subject.Details.SET }}</td>
+          <td>{{ subject.Details.KILL }}</td>
+          <td>{{ subject.Details.ZKILL }}</td>
+          <td>{{ getOtherCount(subject) }}</td>
+          <td class="text-center"> {{ subject.Size | PrettyBytes }}</td>
+          <td>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                    data-bs-target="#exampleModal" (click)="this.selectedStatsData=subject">
+              Details
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
+    <table class="table table-striped" *ngIf="stats; else noData">
+      <thead class="position-sticky" style="top: 0">
+      <tr>
+        <th>#</th>
+        <th>Database</th>
+        <th>Count</th>
+        <th>SET</th>
+        <th>KILL</th>
+        <th>ZKILL</th>
+        <th>Others</th>
+        <th>Size</th>
+        <th>Actions</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let subject of stats.PID;let position = index">
+        <td>{{ position + 1 }}</td>
+        <td>{{ subject.id }}</td>
+        <td>{{ subject.Count }}</td>
+        <td>{{ subject.Details.SET }}</td>
+        <td>{{ subject.Details.KILL }}</td>
+        <td>{{ subject.Details.ZKILL }}</td>
+        <td>{{ getOtherCount(subject) }}</td>
+        <td class="text-center"> {{ subject.Size | PrettyBytes }}</td>
+        <td>
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                  data-bs-target="#exampleModal" (click)="this.selectedStatsData=subject">
+            Details
+          </button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModalLabel">{{ this.selectedStatsData?.id }}</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Journal entry type</th>
+              <th>Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>SET</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.SET: 0 }}</td>
+            </tr>
+            <tr>
+              <td>KILL</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.KILL: 0 }}</td>
+            </tr>
+            <tr>
+              <td>ZKILL</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.ZKILL: 0 }}</td>
+            </tr>
+            <tr>
+              <td>BitSET</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.BitSET: 0 }}</td>
+            </tr>
+            <tr>
+              <td>RemoteSET</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.RemoteSET: 0 }}</td>
+            </tr>
+            <tr>
+              <td>RemoteKILL</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.RemoteKILL: 0 }}</td>
+            </tr>
+            <tr>
+              <td>RemoteZKILL</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.RemoteZKILL: 0 }}</td>
+            </tr>
+            <tr>
+              <td>MirrorSET</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.MirrorSET: 0 }}</td>
+            </tr>
+            <tr>
+              <td>MirrorKILL</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.MirrorKILL: 0 }}</td>
+            </tr>
+            <tr>
+              <td>KILLdes</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.KILLdes: 0 }}</td>
+            </tr>
+            <tr>
+              <td>BeginTrans</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.BeginTrans: 0 }}</td>
+            </tr>
+            <tr>
+              <td>CommitTrans</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.CommitTrans: 0 }}</td>
+            </tr>
+            <tr>
+              <td>VecKILL</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.VecKILL: 0 }}</td>
+            </tr><tr>
+              <td>VecSET</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.VecSET: 0 }}</td>
+            </tr>
+            <tr>
+              <td>Rollback</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.Rollback: 0 }}</td>
+            </tr>
+            <tr>
+              <td>netsyn</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.netsyn: 0 }}</td>
+            </tr>
+            <tr>
+              <td>Enqueue</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.Enqueue: 0 }}</td>
+            </tr>
+            <tr>
+              <td>Dequeue</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.Dequeue: 0 }}</td>
+            </tr>
+            <tr>
+              <td>extrec</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.extrec: 0 }}</td>
+            </tr>
+            <tr>
+              <td>pad</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.pad: 0 }}</td>
+            </tr>
+            <tr>
+              <td>blkhdr</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.blkhdr: 0 }}</td>
+            </tr>
+            <tr>
+              <td>dirtab</td>
+              <td>{{ (this.selectedStatsData!== undefined) ? this.selectedStatsData?.Details?.dirtab: 0 }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

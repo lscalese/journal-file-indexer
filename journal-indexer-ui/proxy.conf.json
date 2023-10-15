@@ -1,0 +1,13 @@
+{
+  "/jrnindexer/api/*": {
+    "target": "http://localhost:49187",
+    "secure": false,
+    "logLevel": "debug"
+  },
+  "/jrnindexer/ws/*": {
+    "target": "ws://localhost:49187",
+    "secure": false,
+    "logLevel": "debug",
+    "ws": true
+  }
+}

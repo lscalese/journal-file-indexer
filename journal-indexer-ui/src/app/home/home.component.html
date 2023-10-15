@@ -1,0 +1,37 @@
+<div class="container">
+    <figure class="text-center">
+        <blockquote class="blockquote">
+            <p>Welcome to journal file indexer!</p>
+        </blockquote>
+        <figcaption class="blockquote-footer">
+             <cite title="Source Title">find your deleted data</cite>
+        </figcaption>
+    </figure>
+
+    <div class="alert alert-primary" role="alert">
+        <ul class="list-unstyled">
+            <li>This is a tools to index your journal file into the database.</li>
+            <li>The goal is :
+                <ul>
+                    <li>Search data</li>
+                    <li>Restore data in new location (data are not restored in the original global)</li>
+                    <li>Show stats</li>
+                </ul>
+            </li>
+
+            <li>Indexed journal data are considered as "temporary data".</li>
+            <li>So, indexed data are stored in IRISTEMP database.</li>
+        </ul>
+    </div>
+    <div class="alert alert-warning" role="alert">
+        This tools should not used directly on a live system.<br/>
+        The good practice is to index journal file on a test system.
+    </div>
+
+    <div class="alert alert-danger" role="alert">
+        Data are stored in IRISTEMP, make sure you have enough space before indexing a file.<br/>
+        1 GB journal file can take up to 5 Gb in database.<br/>
+        By Default Journal Indexer keep 5 indexed journal max, if a 6th is indexed, the oldest is automatically deleted.
+    </div>
+
+</div>
