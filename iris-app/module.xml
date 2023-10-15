@@ -3,7 +3,7 @@
   <Document name="journal-indexer.ZPM">
     <Module>
       <Name>journal-indexer</Name>
-      <Version>0.5.1</Version>
+      <Version>0.5.2</Version>
       <Description></Description>
       <Packaging>module</Packaging>
       <SourcesRoot>src</SourcesRoot>
@@ -14,6 +14,8 @@
       <Resource Name="journalindexer.INC" Directory="inc/"/>
       <Resource Name="eventobserver.INC" Directory="inc/"/>
       <Invoke Class="dc.journalindexer.services.Config" Method="Initialize"></Invoke>
+      <Invoke Class="dc.journalindexer.services.Config" Method="InitWebApps"></Invoke>
+      
       <CSPApplication 
         Url="/jrnindexer/api"
         Recurse="1"

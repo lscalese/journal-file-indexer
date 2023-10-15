@@ -315,6 +315,8 @@ components:
     IndexedJrn:
       type: object
       properties:
+        id: 
+          type: integer
         name: 
           type: string
         firstRecord:
@@ -468,7 +470,7 @@ components:
         Count:
           type: integer
         Details:
-          type: array
+          type: object
           items:
             $ref: '#/components/schemas/TypeDetail'
     TypeDetail:

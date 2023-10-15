@@ -14,6 +14,15 @@ The log file search functionality integrated into the management portal is curre
 
 ## Release note
 
+**Version 0.6.0**
+
+First version with web front-end Angular
+
+ * Some change in REST api
+ * Auth REST API using JWT
+
+ 
+
 **Version 0.5.0**
 
 New features:

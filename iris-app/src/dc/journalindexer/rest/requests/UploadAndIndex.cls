@@ -16,6 +16,8 @@ Property body As %Stream.GlobalBinary;
 
 Property queryrunTuneTable As %Boolean;
 
+Property userDefinedName As %String;
+
 Property filename As %String;
 
 /// Load object properties from %CSP.Request object.
@@ -29,6 +31,11 @@ Method LoadFromRequest(request As %CSP.Request = {%request}) As %Status
 		Do ..body.CopyFrom(jrnFile)
 		Set ..filename = jrnFile.FileName
 	}
+	;$Get(request.MimeData("userDefinedName",1)) ; does not work to check  with front app...
+	Set ..userDefinedName = $Get(request.Data("userDefinedName",1),$Get(request.MimeData("userDefinedName",1)))
+
+	If ..userDefinedName = "" Set ..userDefinedName = ##class(%File).GetFilename(..filename)
+	
 	Quit sc
 }
 

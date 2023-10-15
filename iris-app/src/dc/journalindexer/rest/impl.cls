@@ -105,11 +105,11 @@ ClassMethod IndexFile(messageRequest As dc.journalindexer.rest.requests.IndexFil
 ClassMethod UploadAndIndex(messageRequest As dc.journalindexer.rest.requests.UploadAndIndex) As %Status
 {
 	Set token = $tr($SYSTEM.Encryption.Base64Encode($tr($zdt($h,3,1),"-: "),1),"=")
-	Set filePath = ##Class(%File).TempFilename(messageRequest.filename), fileName = ##class(%File).GetFilename(filePath)
+	Set filePath = ##Class(%File).TempFilename(messageRequest.filename) ;, fileName = ##class(%File).GetFilename(filePath)
 	Set file = ##class(%Stream.FileBinary).%New()
 	Do file.LinkToFile(filePath), file.CopyFromAndSave(messageRequest.body) kill file
 	Set ^dc.journalindexer.token(token) = {"Status":"In Progress","Action":"Starting"}.%ToJSON()
-	Job ##class(dc.journalindexer.services.Indexer).Index(filePath,fileName,"",$$$NO,token,$$$YES)::2
+	Job ##class(dc.journalindexer.services.Indexer).Index(filePath,messageRequest.userDefinedName,"",$$$NO,token,$$$YES)::2
 	If '$Test Set sc = $$$ERROR($$$GeneralError,"Fail to start indexer job.") Kill ^dc.journalindexer.token(token) $$$ThrowStatus(sc)
 	Quit {"Status":"Started","PID":($ZChild),"Token":(token),"Message":""}
 }
