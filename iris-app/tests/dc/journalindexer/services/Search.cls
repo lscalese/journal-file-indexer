@@ -40,7 +40,7 @@ Method Test015Search() As %Status
 {
     Do ..LogMessage("Search in indexed journal file using filter : File, GlobalName, Type and Subscripts.")
 
-    Set sc = $$$OK
+    Set sc = $$$OK, count=0
 
     ;USStateI
     Set state = $Order(^dc.journalindexer.testI("USStateI","")), id = "", cpt = 0
