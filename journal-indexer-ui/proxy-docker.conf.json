@@ -1,0 +1,13 @@
+{
+  "/jrnindexer/api/*": {
+    "target": "http://iris:52773",
+    "secure": false,
+    "logLevel": "debug"
+  },
+  "/jrnindexer/ws/*": {
+    "target": "ws://iris:52773",
+    "secure": false,
+    "logLevel": "debug",
+    "ws": true
+  }
+}

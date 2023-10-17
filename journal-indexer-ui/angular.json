@@ -73,14 +73,16 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "proxyConfig": "proxy.conf.json"
+
           },
           "configurations": {
             "production": {
-              "browserTarget": "journal-indexer-ui:build:production"
+              "browserTarget": "journal-indexer-ui:build:production",
+              "proxyConfig": "proxy-docker.conf.json"
             },
             "development": {
-              "browserTarget": "journal-indexer-ui:build:development"
+              "browserTarget": "journal-indexer-ui:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

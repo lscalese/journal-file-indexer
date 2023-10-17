@@ -29,7 +29,7 @@ export class LoginService {
     this.http.post<JsonWebToken>( this.loginEndPoint, {"user": username, "password": password })
         .subscribe({
             next: jwt => {
-                console.log(jwt)
+                //console.log(jwt)
                 this.storageService.save(jwt.access_token)
                 this.router.navigate(['home'])
             },

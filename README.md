@@ -21,7 +21,11 @@ First version with web front-end Angular
  * Some change in REST api
  * Auth REST API using JWT
 
- 
+Interface to: 
+ * index a journal file
+ * upload and index a journal file
+ * list indexed journal
+ * show stats about indexed journal
 
 **Version 0.5.0**
 
@@ -94,6 +98,7 @@ git clone https://github.com/lscalese/journal-file-indexer.git
 cd journal-file-indexer
 docker-compose up -d
 ```
+
 
 ## Run Unit Tests
   

@@ -3,7 +3,7 @@ ARG IMAGE=intersystemsdc/iris-community:2020.4.0.547.0-zpm
 ARG IMAGE=containers.intersystems.com/intersystems/iris:2021.1.0.215.0
 ARG IMAGE=intersystemsdc/irishealth-community
 ARG IMAGE=intersystemsdc/iris-community
-ARG IMAGE=intersystemsdc/iris-community:preview
+ARG IMAGE=intersystemsdc/iris-community:latest
 FROM $IMAGE as builder
 
 WORKDIR /home/irisowner/dev
