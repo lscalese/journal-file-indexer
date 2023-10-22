@@ -261,6 +261,8 @@ ClassMethod SearchQueryBuilder(
             
             Set condition = "", value = tmp.Value, tmp.Operator = $$$LOWER(tmp.Operator)
             
+            Set tmp.Logical = $Case($$$UPPER(tmp.Logical), "AND":"AND", "OR":"OR", :"") ; injection protect
+
             Set sql($Increment(sql)) = tmp.Logical _ " FOR SOME %ELEMENT("_key_") ("
 
             If tmp.Operator = "" {

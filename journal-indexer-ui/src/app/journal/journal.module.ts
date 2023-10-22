@@ -11,6 +11,9 @@ import { RecordComponent } from './record/record.component';
 import { JournalProgressionComponent } from '../journal-progression/journal-progression.component';
 import { DropFileComponent } from '../drop-file/drop-file.component';
 import {NgxDropzoneModule} from "ngx-dropzone";
+import { FilterComponent } from '../filter/filter.component';
+import { JournalTableComponent } from '../journal-table/journal-table.component';
+import { ShowJournalComponent } from '../show-journal/show-journal.component';
 
 @NgModule({
   declarations: [
@@ -19,7 +22,10 @@ import {NgxDropzoneModule} from "ngx-dropzone";
     JournalStatsComponent,
     RecordComponent,
     JournalProgressionComponent,
-    DropFileComponent
+    DropFileComponent,
+    FilterComponent,
+    JournalTableComponent,
+    ShowJournalComponent
   ],
     imports: [
         CommonModule,

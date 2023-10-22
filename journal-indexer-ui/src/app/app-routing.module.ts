@@ -9,12 +9,14 @@ import {LoginComponent} from "./login/login/login.component";
 import {HomeComponent} from "./home/home.component";
 import {AuthGuard} from "./login/login/auth.guard";
 import {DropFileComponent} from "./drop-file/drop-file.component";
+import {ShowJournalComponent} from "./show-journal/show-journal.component";
 
 const routes: Routes = [
   { path:"", redirectTo:"home", pathMatch:"full" },
   { path:"home", component: HomeComponent, canActivate: [AuthGuard] },
   { path:"login", component: LoginComponent},
   { path:"list", component: JournalListComponent, canActivate: [AuthGuard]  },
+  { path:"show/:id", component: ShowJournalComponent, canActivate: [AuthGuard]  },
   { path:"new", component: JournalFormComponent, canActivate: [AuthGuard]  },
   { path:"upload", component: DropFileComponent, canActivate: [AuthGuard]  },
   { path:"stats/:id", component: JournalStatsComponent, canActivate: [AuthGuard] },

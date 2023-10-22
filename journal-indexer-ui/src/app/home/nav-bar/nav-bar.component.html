@@ -15,8 +15,11 @@
                 <li class="nav-item">
                     <a class="nav-link active" aria-current="page" href="#" [routerLink]="['/list']">list</a>
                 </li>
+                <li class="nav-item">
+                  <a class="nav-link active" aria-current="page" href="#" [routerLink]="['/show/0']">View</a>
+                </li>
 
-                <li class="nav-item" *ngIf="getLastToken()!==''">
+              <li class="nav-item" *ngIf="getLastToken()!==''">
                     <a class="nav-link active" aria-current="page" href="#" [routerLink]="['/last-action', getLastToken()]">Progression</a>
                 </li>
                 <li class="nav-item dropdown">

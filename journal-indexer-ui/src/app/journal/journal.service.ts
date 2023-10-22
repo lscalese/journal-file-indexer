@@ -60,4 +60,12 @@ export class JournalService {
         ()=> { this.store.dispatch(DeleteIndexedJournal({ID:id}))}
     )
   }
+
+  getGlobals(id: string | number) {
+    return this.http.get<string[]>(this.apiUrl + this.webApp + '/globals/' + id)
+  }
+
+  getDatabases(id: string | number) {
+    return this.http.get<string[]>(this.apiUrl + this.webApp + '/databases/' + id)
+  }
 }
