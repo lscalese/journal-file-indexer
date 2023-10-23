@@ -31,7 +31,8 @@ Method LoadFromRequest(request As %CSP.Request = {%request}) As %Status
 	Set sc = $$$OK
 	Set ..%ContentType = $Piece(request.ContentType, ";", 1)
 	;pathfileid must be set out of this method
-	Set:$Data(request.Data("filter",1),value)&&(value'="") ..filter = {}.%FromJSON(value)
+	;Set:$Data(request.Data("filter",1),value)&&(value'="") ..filter = {}.%FromJSON(value)
+	Set ..filter = {}.%FromJSON(request.Content)
 	Set:$Data(request.Data("limitRecord",1),value)&&(value'="") ..limitRecord = value
 	Set:$Data(request.Data("direction",1),value)&&(value'="") ..direction = value
 	Set:$Data(request.Data("startId",1),value)&&(value'="") ..startId = value

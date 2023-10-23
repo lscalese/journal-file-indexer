@@ -180,10 +180,10 @@ ClassMethod GetRecords(fileid As %String) As %Status
 		Do ##class(%REST.Impl).%SetContentType($Get(%request.CgiEnvs("HTTP_ACCEPT")))
 		If '##class(%REST.Impl).%CheckAccepts("application/json") Do ##class(%REST.Impl).%ReportRESTError(..#HTTP406NOTACCEPTABLE,$$$ERROR($$$RESTBadAccepts)) Quit
 		Set requestMessage = ##class(dc.journalindexer.rest.requests.GetRecords).%New()
+		Set requestMessage.pathfileid = fileid
 		Do requestMessage.LoadFromRequest(%request)
 		Set scValidateRequest = requestMessage.RequestValidate()
 		If $$$ISERR(scValidateRequest) Do ##class(%REST.Impl).%ReportRESTError(..#HTTP400BADREQUEST,$$$ERROR(5001,"Invalid requestMessage object.")) Quit
-		Set requestMessage.pathfileid = fileid
 		Set response = ##class(dc.journalindexer.rest.impl).GetRecords(requestMessage)
 		Do ##class(dc.journalindexer.rest.impl).%WriteResponse(response)
 	} Catch(ex) {
@@ -346,7 +346,7 @@ XData UrlMap [ XMLNamespace = "http://www.intersystems.com/urlmap" ]
   <Route Url="/file/progression/:token" Method="GET" Call="GetIndexerProgression" />
   <Route Url="/indexedjournals" Method="GET" Call="GetListFiles" />
   <Route Url="/record/:fileid/:address" Method="GET" Call="GetRecord" />
-  <Route Url="/records/:fileid" Method="GET" Call="GetRecords" />
+  <Route Url="/records/:fileid" Method="POST" Call="GetRecords" />
   <Route Url="/stats/:fileid" Method="GET" Call="GetStats" />
   <Route Url="/export/:fileid" Method="GET" Call="Export" />
   <Route Url="/restore" Method="POST" Call="Restore" />

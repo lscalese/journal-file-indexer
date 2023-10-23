@@ -255,12 +255,22 @@ ClassMethod SearchQueryBuilder(
 
         #dim tmpArray As %DynamicArray
         #dim iter As %Iterator.Array = tmpArray.%GetIterator()
-        Set sql($Increment(sql)) = $$$ZADDAND _"("
+        
+        set hasWhereSubscripts = $$$NO
 
         While iter.%GetNext(.iterKey,.tmp) {
             
             Set condition = "", value = tmp.Value, tmp.Operator = $$$LOWER(tmp.Operator)
             
+            If value = "", tmp.Start '= "" {
+                Set value = tmp.Start
+            }
+
+            Continue:value=""
+
+            Set:'hasWhereSubscripts sql($Increment(sql)) = $$$ZADDAND _"("
+            Set:'hasWhereSubscripts hasWhereSubscripts = $$$YES
+        
             Set tmp.Logical = $Case($$$UPPER(tmp.Logical), "AND":"AND", "OR":"OR", :"") ; injection protect
 
             Set sql($Increment(sql)) = tmp.Logical _ " FOR SOME %ELEMENT("_key_") ("
@@ -294,7 +304,7 @@ ClassMethod SearchQueryBuilder(
             
             Set sql($Increment(sql)) = ")"
         }
-        Set sql($Increment(sql)) = ")"
+        Set:hasWhereSubscripts sql($Increment(sql)) = ")"
     }
 
     /// Condition with Range

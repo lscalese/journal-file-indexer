@@ -18,7 +18,7 @@ ClassMethod DeleteIndexedFile(messageRequest As dc.journalindexer.rest.requests.
 /// Service implemntation for get /databases/{fileid}
 ClassMethod GetDatabases(messageRequest As dc.journalindexer.rest.requests.GetDatabases) As %Status
 {
-	Quit ##class(dc.journalindexer.dao.JournalDataDAO).GetDistinct("databasename",messageRequest.pathfileid,"")
+	Quit ##class(dc.journalindexer.dao.JournalDataDAO).GetDistinct("databasename",messageRequest.pathfileid,"",,messageRequest.globalName)
 }
 
 /// Service implemntation for get /globals/{fileid}
@@ -64,6 +64,7 @@ ClassMethod GetRecord(messageRequest As dc.journalindexer.rest.requests.GetRecor
 /// Service implemntation for get /records/{fileid}
 ClassMethod GetRecords(messageRequest As dc.journalindexer.rest.requests.GetRecords) As %Status
 {
+	s ^lsc(1) = messageRequest.filter.%ToJSON()
 	Quit ##class(dc.journalindexer.dao.JournalDataDAO).GetRecords(messageRequest.filter, $$$YES, messageRequest.limitRecord, messageRequest.startId, messageRequest.direction)
 }
 

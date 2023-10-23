@@ -11,9 +11,11 @@ import { RecordComponent } from './record/record.component';
 import { JournalProgressionComponent } from '../journal-progression/journal-progression.component';
 import { DropFileComponent } from '../drop-file/drop-file.component';
 import {NgxDropzoneModule} from "ngx-dropzone";
-import { FilterComponent } from '../filter/filter.component';
-import { JournalTableComponent } from '../journal-table/journal-table.component';
+import { FilterComponent } from '../show-journal/filter/filter.component';
+import { JournalTableComponent } from '../show-journal/journal-table/journal-table.component';
 import { ShowJournalComponent } from '../show-journal/show-journal.component';
+import {ClipboardModule} from "ngx-clipboard";
+import { RestoreGlobalComponent} from "../show-journal/restore-global/restore-global.component";
 
 @NgModule({
   declarations: [
@@ -25,7 +27,8 @@ import { ShowJournalComponent } from '../show-journal/show-journal.component';
     DropFileComponent,
     FilterComponent,
     JournalTableComponent,
-    ShowJournalComponent
+    ShowJournalComponent,
+    RestoreGlobalComponent
   ],
     imports: [
         CommonModule,
@@ -34,7 +37,8 @@ import { ShowJournalComponent } from '../show-journal/show-journal.component';
         HomeModule,
         RouterModule,
         AppModule,
-        NgxDropzoneModule
+        NgxDropzoneModule,
+        ClipboardModule
     ]
 })
 export class JournalModule { }

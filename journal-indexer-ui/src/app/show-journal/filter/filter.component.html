@@ -1,16 +1,5 @@
-<div class="container-fluid" [hidden]="!showFilter">
+<div class="container-fluid border border-3" [hidden]="!showFilter">
   <form [formGroup]="filterForm" (ngSubmit)="onSubmit()" >
-
-<!--    <div class="row mb-3" formGroupName="tests" >-->
-<!--      <input class="form-control" formControlName="Operator">-->
-<!--      <input class="form-control" formControlName="Start">-->
-<!--      <input class="form-control" formControlName="End"><br/>-->
-<!--      <small class="text-danger" *ngIf="filterForm.get('tests')?.invalid"> &lt;!&ndash;*ngIf="filterForm.get('tests')?.invalid"&ndash;&gt;-->
-<!--        {{ filterForm.controls['tests'].errors?.['between'] }}-->
-<!--        Invalid range-->
-<!--      </small>-->
-<!--    </div>-->
-
     <div class="mb-3 pt-3">
       <label for="form-select-journal" class="form-label">Select an indexed journal file.</label>
     </div>
@@ -32,7 +21,7 @@
     <div class="row mb-3">
       <div class="col" formGroupName="DatabaseName">
         <label for="form-db" class="form-label">Select a database</label>
-        <select id="form-db" class="form-select" aria-label="Default select example" formControlName="Value">
+        <select id="form-db" class="form-select" aria-label="Default select example" formControlName="Value" (change)="onSelectDB()">
           <option></option>
           <option *ngFor="let db of dbList" [value]="db"> {{ db }}</option>
         </select>
@@ -146,7 +135,7 @@
           <span class="input-group-text" >@</span>
           <input type="text" class="form-control" placeholder="position in $ListBuild" aria-label="position in $ListBuild" value="" formControlName="Position">
         </div>
-        <small class="text-danger" *ngIf="filterForm.controls['OldValue'].get('Position')?.invalid"><p>Position must be an integer.</p></small>
+        <small class="text-danger" *ngIf="filterForm.controls['OldValue'].get('Position')?.invalid">Position must be an integer.</small>
         <small class="text-danger" *ngIf="filterForm.controls['OldValue'].hasError('between')">
           Invalid range.
         </small>
@@ -216,20 +205,28 @@
             >Add</button>
             <button type="button" class="btn btn-outline-danger" *ngIf="i > 0" (click)="deleteSubscriptFilter(i)">Delete</button>
           </div>
-<!--          <small class="text-danger" *ngIf="control?.controls[i].hasError('between')">-->
-<!--            Range is invalid.-->
-<!--          </small>-->
+          <small class="text-danger" *ngIf="this.control?.controls?.at(i)?.hasError('between')">
+            Range is invalid.
+          </small>
+          <small class="text-danger" *ngIf="this.control?.controls?.at(i)?.get('Position')?.invalid">
+            Position must be number.
+          </small>
       </div>
     </div>
 
-    <div class="row m-1 mb-3">
-      <button type="submit" class="btn btn-primary" [disabled]="filterForm.invalid">Search</button>
+    <div class="row m-1">
+      <div class="col text-center">
+        <button type="submit" class="btn btn-primary m-1" [disabled]="filterForm.invalid">Search</button>
+        <button type="button" class="btn btn-warning m-1" (click)="resetForm()">Reset</button>
+        <button type="button" class="btn btn-dark m-1" (click)="showFilter = !showFilter">Hide filter</button>
+      </div>
     </div>
+
   </form>
 
 </div>
-<div class="container-fluid">
-  <div class="row m-1 ">
-    <button class="btn btn-dark" (click)="showFilter = !showFilter">Show \ Hide filter</button>
+<div class="container-fluid" *ngIf="!showFilter">
+  <div class="row">
+    <button class="btn btn-dark rounded-0 btn-sm" (click)="showFilter = !showFilter">Show filter</button>
   </div>
 </div>

@@ -28,6 +28,7 @@
     "bootstrap-table": "^1.22.1",
     "highcharts": "^11.1.0",
     "highcharts-angular": "^3.1.2",
+    "ngx-clipboard": "^16.0.0",
     "ngx-dropzone": "^3.1.0",
     "pretty-bytes": "^6.1.1",
     "rxjs": "~7.8.0",

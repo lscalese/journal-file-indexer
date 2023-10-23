@@ -15,9 +15,9 @@
     do $SYSTEM.OBJ.Load("/home/irisowner/dev/Installer.cls", "ck")
     set sc = ##class(App.Installer).setup()
 
-    ;zn "%SYS"
-    ;Do ##class(Config.NLS.Locales).Install("fraw")
-    ;Do ##class(Config.NLS.Locales).Install("enuw")
+    zn "%SYS"
+    Do ##class(Config.NLS.Locales).Install("fraw")
+    Do ##class(Config.NLS.Locales).Install("enuw")
 
     zn "IRISAPP"
     

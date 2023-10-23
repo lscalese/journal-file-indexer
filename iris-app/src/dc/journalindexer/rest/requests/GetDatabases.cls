@@ -14,12 +14,14 @@ Property %URL As %String [ InitialExpression = {..#URL} ];
 /// Indexed journal ID.  See GET /indexedjournals to retrieve the list of indexed journal in DB.
 Property pathfileid As %String;
 
+Property globalName As %String;
+
 /// Load object properties from %CSP.Request object.
 Method LoadFromRequest(request As %CSP.Request = {%request}) As %Status
 {
 	Set sc = $$$OK
 	Set ..%ContentType = $Piece(request.ContentType, ";", 1)
-	;Set ..queryfileid = $Get(request.Data("fileid",1))
+	Set ..globalName = $Get(request.Data("globalName",1))
 	Quit sc
 }
 

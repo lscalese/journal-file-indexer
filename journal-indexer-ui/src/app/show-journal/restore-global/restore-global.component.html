@@ -1,0 +1,47 @@
+<!-- Button trigger modal -->
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalRestore">Restore</button>
+
+<!-- Modal -->
+<div class="modal fade" id="modalRestore" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="staticBackdropLabel">Restore - Export Global {{ filter?.GlobalName?.Value }}</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-start">
+        <form [formGroup]="restoreForm">
+
+          <div class="row">
+            <div class="col">
+              <label class="form-label">Redirect</label>
+              <div class="input-group mb-3">
+                <span class="input-group-text" >{{ filter?.GlobalName?.Value }}</span>
+                <span class="input-group-text" >To</span>
+                <input type="text" class="form-control" placeholder="ex: ^restore.{{ filter?.GlobalName?.Value?.substring(1,filter?.GlobalName?.Value?.length) }}" aria-label="" value="" formControlName="RedirectTo">
+              </div>
+              <small class="text-black">Data must be restored to a non existing global to avoid data override mistake.</small>
+            </div>
+          </div>
+
+          <div class="row mt-3">
+            <div class="col">
+              <label class="form-label">Restore</label>
+              <select class="form-select" formControlName="RestoreValue">
+                <option value="newvalue">New Value</option>
+                <option value="oldvalue">Old Value</option>
+              </select>
+            </div>
+            <small class="text-black">Old value can be restored only if a journal entry operation is a part of a transaction.</small>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" (click)="restore()">Restore</button>
+        <button type="button" class="btn btn-primary" (click)="export()">Export</button>
+      </div>
+    </div>
+  </div>
+</div>

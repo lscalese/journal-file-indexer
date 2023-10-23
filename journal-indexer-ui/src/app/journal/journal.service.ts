@@ -13,6 +13,10 @@ import {
 } from "../journals/journal.actions";
 import {AppState} from "../app-state";
 import {Store} from "@ngrx/store";
+import {Filter} from "../models/filter";
+import {SearchRecordParams} from "../models/search-record-params";
+import { Record} from "../models/record";
+import {RestoreRecords} from "../models/restore-records";
 
 
 @Injectable({
@@ -61,11 +65,23 @@ export class JournalService {
     )
   }
 
-  getGlobals(id: string | number) {
-    return this.http.get<string[]>(this.apiUrl + this.webApp + '/globals/' + id)
+  getGlobals(id: string | number, selectedDB: string) {
+    return this.http.get<string[]>(this.apiUrl + this.webApp + '/globals/' + id + '?databasename=' + encodeURIComponent(selectedDB))
   }
 
   getDatabases(id: string | number) {
     return this.http.get<string[]>(this.apiUrl + this.webApp + '/databases/' + id)
+  }
+
+  getRecords(filter: Filter, params: SearchRecordParams): Observable<Record []>{
+    const queryParams = new URLSearchParams(JSON.parse(JSON.stringify(params))).toString()
+    return this.http.post<Record[]>(this.apiUrl + this.webApp + '/records/'+filter.File?.Value + '?' + queryParams, filter)
+  }
+
+  restore(requestBody: RestoreRecords) {
+    this.http.post(this.apiUrl + this.webApp + '/restore', requestBody).subscribe({
+      next: (data) => {console.log(data)},
+      error: (error) => {console.log(error)}
+    })
   }
 }

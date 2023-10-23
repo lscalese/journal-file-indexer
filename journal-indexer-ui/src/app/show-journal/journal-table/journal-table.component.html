@@ -1,0 +1,177 @@
+<div class="container" *ngIf="tableInfo.state === 'loading'">
+  <div class="row m-4 text-center">
+    <div class="col text-center">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid text-center mt-3" *ngIf="tableInfo.state === 'ready'">
+  <div class="row">
+    <div class="col">&nbsp;
+    </div>
+    <div class="col">
+      <ul class="pagination">
+        <li class="page-item"><p class="page-link" style="cursor: pointer;" [class.disabled]="tableInfo.page===1" (click)="previous()">Previous</p></li>
+        <li class="page-item"><p class="page-link">{{ tableInfo.page }}</p></li>
+        <li class="page-item"><p class="page-link" style="cursor: pointer;" [class.disabled]="tableInfo.endOfData" (click)="next()">Next</p></li>
+      </ul>
+    </div>
+    <div class="col text-end">
+      <app-restore-global></app-restore-global>
+<!--      <button class="btn btn-dark" [title]="'Available only if a filter on a global name is used.'"-->
+<!--              [disabled]="tableInfo.filter.GlobalName?.Value === ''"-->
+<!--        >Restore</button>-->
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid" *ngIf="tableInfo.state === 'ready'">
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">Timestamp</th>
+        <th scope="col">Process</th>
+        <th scope="col">Type</th>
+        <th scope="col">In Transaction</th>
+        <th scope="col">Global Node</th>
+        <th scope="col">Database</th>
+        <th scope="col">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let record of tableInfo.records; let i = index">
+        <th scope="row">{{ record.address }}</th>
+        <td>{{ record.timestamp }}</td>
+        <td>{{ record.processID }}</td>
+        <td>{{ record.type }}</td>
+        <td>{{ record.inTransaction ? 'Yes' : 'No' }}</td>
+        <td>{{ record.globalNode }}</td>
+        <td>{{ record.databaseName }}</td>
+        <td><button class="btn btn-dark" (click)="setRecordDetails(i)" data-bs-toggle="modal" data-bs-target="#recordDetails">Details</button></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <nav aria-label="Page navigation example">
+    <ul class="pagination">
+      <li class="page-item"><p class="page-link" style="cursor: pointer;" [class.disabled]="tableInfo.page===1" (click)="previous()">Previous</p></li>
+      <li class="page-item"><p class="page-link">{{ tableInfo.page }}</p></li>
+      <li class="page-item"><p class="page-link" style="cursor: pointer;" [class.disabled]="tableInfo.endOfData" (click)="next()">Next</p></li>
+    </ul>
+  </nav>
+
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="recordDetails" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModalLabel">Journal Entry Details</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body font-monospace">
+        <div class="card">
+          <div class="card-header">
+            <div class="row row-cols-4">
+              <div class="col fw-bold ">File</div>
+              <div class="col">{{ selectedJournal.Name }}</div>
+              <div class="col fw-bold ">User Defined Name </div>
+              <div class="col">{{ selectedJournal.UserDefinedName }}</div>
+            </div>
+          </div>
+          <div class="card-body">
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold">Address</div>
+              <div class="col ">{{ currentRecord.address }}</div>
+            </div>
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold">Timestamp</div>
+              <div class="col ">{{ currentRecord.timestamp }}</div>
+            </div>
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold">Type</div>
+              <div class="col ">{{ currentRecord.type }}</div>
+            </div>
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold">In Transaction</div>
+              <div class="col ">{{ currentRecord.inTransaction ? 'Yes' : 'No' }}</div>
+            </div>
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold">Process ID</div>
+              <div class="col ">{{ currentRecord.processID }}</div>
+            </div>
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold">Database</div>
+              <div class="col ">{{ currentRecord.databaseName }}</div>
+            </div>
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold">Global Node</div>
+              <div class="col ">{{ currentRecord.globalNode }}</div>
+            </div>
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold">Exists New Value</div>
+              <div class="col ">{{ currentRecord.existsNewValue ? 'Yes' : 'No' }}</div>
+            </div>
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold">Exists Old Value</div>
+              <div class="col ">{{ currentRecord.existsOldValue ? 'Yes' : 'No' }}</div>
+            </div>
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold">Old Value</div>
+              <div class="col">
+                <textarea class="form-control font-monospace" disabled>{{ currentRecord.formattedOldValue}}</textarea>
+              </div>
+            </div>
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold"></div>
+              <div class="col text-end">
+                <button type="button" class="btn btn-secondary btn-sm rounded-0" (click)="navigator.clipboard.writeText(currentRecord.formattedOldValue)">Copy to clipboard</button>
+              </div>
+            </div>
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold">New Value</div>
+              <div class="col">
+                <textarea class="form-control font-monospace" disabled>{{ currentRecord.formattedNewValue}}</textarea>
+              </div>
+            </div>
+
+            <div class="row m-2">
+              <div class="col col-2 fw-bold"></div>
+              <div class="col text-end">
+                <button type="button" class="btn btn-secondary btn-sm rounded-0" (click)="navigator.clipboard.writeText(currentRecord.formattedNewValue)">Copy to clipboard</button>
+              </div>
+            </div>
+
+            <div class="row m-2" *ngIf="currentRecord.type === 'BitSET'">
+              <div class="col col-2 fw-bold">Position</div>
+              <div class="col ">{{ currentRecord.position }}</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" [disabled]="currentRecordIndex === 0" (click)="previousDetail()">Previous</button>
+        <button type="button" class="btn btn-primary" [disabled]="(tableInfo.records.length - 1 === currentRecordIndex)" (click)="nextDetail()">Next</button>
+      </div>
+    </div>
+  </div>
+</div>

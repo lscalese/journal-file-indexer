@@ -1,4 +1,6 @@
 export interface Record {
+    id: number
+
     file: number
 
     address: number
