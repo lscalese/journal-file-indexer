@@ -32,14 +32,13 @@ ClassMethod DeleteIndexedFile(fileid As %String) As %Status
 }
 
 /// Process request get /export/{fileid}
-ClassMethod Export(fileid As %String) As %Status
+ClassMethod Export() As %Status
 {
 	Set sc = $$$OK
 	Try{
 		Do ##class(%REST.Impl).%SetContentType($Get(%request.CgiEnvs("HTTP_ACCEPT")))
 		If '##class(%REST.Impl).%CheckAccepts("application/json") Do ##class(%REST.Impl).%ReportRESTError(..#HTTP406NOTACCEPTABLE,$$$ERROR($$$RESTBadAccepts)) Quit
 		Set requestMessage = ##class(dc.journalindexer.rest.requests.Export).%New()
-		Set requestMessage.pathfileid = fileid
 		Do requestMessage.LoadFromRequest(%request)
 		Set scValidateRequest = requestMessage.RequestValidate()
 		If $$$ISERR(scValidateRequest) Do ##class(%REST.Impl).%ReportRESTError(..#HTTP400BADREQUEST,$$$ERROR(5001,"Invalid requestMessage object.")) Quit
@@ -334,6 +333,24 @@ ClassMethod info() As %Status
 	Quit sc
 }
 
+ClassMethod IsValidGlobal() As %Status
+{
+	Set sc = $$$OK
+	Try{
+		Do ##class(%REST.Impl).%SetContentType($Get(%request.CgiEnvs("HTTP_ACCEPT")))
+		If '##class(%REST.Impl).%CheckAccepts("application/json") Do ##class(%REST.Impl).%ReportRESTError(..#HTTP406NOTACCEPTABLE,$$$ERROR($$$RESTBadAccepts)) Quit
+		Set requestMessage = ##class(dc.journalindexer.rest.requests.IsValidGlobal).%New()
+		Do requestMessage.LoadFromRequest(%request)
+		Set scValidateRequest = requestMessage.RequestValidate()
+		If $$$ISERR(scValidateRequest) Do ##class(%REST.Impl).%ReportRESTError(..#HTTP400BADREQUEST,$$$ERROR(5001,"Invalid requestMessage object.")) Quit
+		Set response = ##class(dc.journalindexer.rest.impl).IsValidGlobal(requestMessage)
+		Do ##class(dc.journalindexer.rest.impl).%WriteResponse(response)
+	} Catch(ex) {
+		Do ##class(%REST.Impl).%ReportRESTError(..#HTTP500INTERNALSERVERERROR,ex.AsStatus(),$parameter("dc.journalindexer.rest.impl","ExposeServerExceptions"))
+	}
+	Quit sc
+}
+
 XData UrlMap [ XMLNamespace = "http://www.intersystems.com/urlmap" ]
 {
 <Routes>
@@ -348,8 +365,9 @@ XData UrlMap [ XMLNamespace = "http://www.intersystems.com/urlmap" ]
   <Route Url="/record/:fileid/:address" Method="GET" Call="GetRecord" />
   <Route Url="/records/:fileid" Method="POST" Call="GetRecords" />
   <Route Url="/stats/:fileid" Method="GET" Call="GetStats" />
-  <Route Url="/export/:fileid" Method="GET" Call="Export" />
+  <Route Url="/export" Method="POST" Call="Export" />
   <Route Url="/restore" Method="POST" Call="Restore" />
+  <Route Url="/isvalidglobal" Method="GET" Call="IsValidGlobal" />
   <Route Url="/globals/:fileid" Method="GET" Call="GetGlobals" />
   <Route Url="/databases/:fileid" Method="GET" Call="GetDatabases" />
   <Route Url="/_spec" Method="get" Call="SwaggerSpec" />

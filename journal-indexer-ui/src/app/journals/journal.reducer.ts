@@ -28,7 +28,7 @@ export const IndexerProgressionReducer = createReducer(
 export const IndexedJournalReducer = createReducer(
   initialJournalList,
   on(AddIndexedJournal, (state, indexedJournal) => {
-    console.log('add indexed journal')
+    // console.log('add indexed journal')
     return [...state,indexedJournal]
   }),
   on(ClearIndexedJournal, (state) => {

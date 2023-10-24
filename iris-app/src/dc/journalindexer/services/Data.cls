@@ -12,17 +12,20 @@ Class dc.journalindexer.services.Data
 ClassMethod RestoreAndExportToFile(
 	Filter As %DynamicObject,
 	RestoreValue As %String,
-	FileName As %String) As %Status
+	FileName As %String,
+	RedirectTo As %String = {$Name(^jrnindxer.tmprestore)}) As %Status
 {
+    Set:$Extract(RedirectTo)'="^" RedirectTo = "^" _ RedirectTo
+    
     Set sc = $$$OK
     Try {
         Lock +^jrnindxer.tmprestore:10
         If '$Test $$$ThrowStatus($$$ERROR($$$GeneralError,"Fail to acquire a lock on ^jrnindxer.tmprestore"))
         Kill:$Data(^jrnindxer.tmprestore) ^jrnindxer.tmprestore
-        Set sc = ..RestoreGlobal(Filter, RestoreValue, $Name(^jrnindxer.tmprestore), .errors)
+        Set sc = ..RestoreGlobal(Filter, RestoreValue, RedirectTo, .errors)
         Quit:$$$ISERR(sc)
-        Set sc = $SYSTEM.OBJ.Export($Extract($Name(^jrnindxer.tmprestore), 2, *) _ ".GBL", FileName)
-        Kill ^jrnindxer.tmprestore
+        Set sc = $SYSTEM.OBJ.Export($Extract(RedirectTo, 2, *) _ ".GBL", FileName)
+        Kill @(RedirectTo)
     } Catch ex {
         Set sc = ex.AsStatus()
     }
@@ -48,6 +51,7 @@ ClassMethod RestoreGlobal(
 	TestOnly As %Boolean = {$$$NO},
 	Verbose As %Boolean = {$$$NO}) As %Status
 {
+    Set:$Extract(RedirectTo)'="^" RedirectTo = "^" _ RedirectTo
     Set sc = $$$OK, RestoreValue = $$$LOWER(RestoreValue), hasResourceName = ResourceName '= ""
     Set (errors,msg) = 0
 

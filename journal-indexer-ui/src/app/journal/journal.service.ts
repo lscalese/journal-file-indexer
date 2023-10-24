@@ -17,6 +17,8 @@ import {Filter} from "../models/filter";
 import {SearchRecordParams} from "../models/search-record-params";
 import { Record} from "../models/record";
 import {RestoreRecords} from "../models/restore-records";
+import {ValidGlobal} from "../models/valid-global";
+import {RestoreResponse} from "../models/restore-response";
 
 
 @Injectable({
@@ -54,7 +56,6 @@ export class JournalService {
         })
   }
 
-
   getStats(id: number): Observable<Stats> {
     return this.http.get<Stats>(this.apiUrl + "/jrnindexer/api/stats/" + id)
   }
@@ -78,10 +79,15 @@ export class JournalService {
     return this.http.post<Record[]>(this.apiUrl + this.webApp + '/records/'+filter.File?.Value + '?' + queryParams, filter)
   }
 
-  restore(requestBody: RestoreRecords) {
-    this.http.post(this.apiUrl + this.webApp + '/restore', requestBody).subscribe({
-      next: (data) => {console.log(data)},
-      error: (error) => {console.log(error)}
-    })
+  restore(requestBody: RestoreRecords): Observable<RestoreResponse> {
+    return this.http.post<RestoreResponse>(this.apiUrl + this.webApp + '/restore', requestBody)
+  }
+
+  export(requestBody: RestoreRecords): Observable<any> {
+    return this.http.post(this.apiUrl + this.webApp + '/export', requestBody)
+  }
+
+  globalExists(globalName: string): Observable<ValidGlobal> {
+    return this.http.get<ValidGlobal>(this.apiUrl + this.webApp + '/isvalidglobal?globalName=' + encodeURIComponent(globalName))
   }
 }

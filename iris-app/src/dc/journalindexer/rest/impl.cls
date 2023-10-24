@@ -131,9 +131,10 @@ ClassMethod Export(messageRequest As dc.journalindexer.rest.requests.Export) As 
 {
 	#dim %response As %CSP.Response
 
+	#dim restoreConfig As dc.journalindexer.rest.model.RestoreConfig = messageRequest.RestoreConfig
+
 	Set filePath = ##Class(%File).TempFilename("xml")
-	Set messageRequest.filter.File.Value = 11
-	Set sc = ##class(dc.journalindexer.services.Data).RestoreAndExportToFile(messageRequest.filter,messageRequest.restorevalue,filePath)
+	Set sc = ##class(dc.journalindexer.services.Data).RestoreAndExportToFile(restoreConfig.Filter, restoreConfig.RestoreValue, filePath, restoreConfig.RedirectTo)
 	If $$$ISERR(sc) Do deleteFile $$$ThrowStatus(sc)
 	Set stream = ##class(%Stream.GlobalBinary).%New()
 	Set file = ##class(%Stream.FileBinary).%New()
@@ -141,7 +142,7 @@ ClassMethod Export(messageRequest As dc.journalindexer.rest.requests.Export) As 
 	Do stream.CopyFrom(file)
 	Kill file
 	Do deleteFile
-	Set attachName = "restore-"_messageRequest.filter.GlobalName.Value_".xml"
+	Set attachName = "restore-"_restoreConfig.Filter.GlobalName.Value_".xml"
 	Set %response.ContentType= "application/xml"
 	Do %response.SetHeader("Content-Disposition",$Replace("attachment; filename=""%1""","%1",attachName))
 	Do %response.SetHeader("Content-Transfer-Encoding","binary")
@@ -168,6 +169,25 @@ ClassMethod SwaggerSpec() As %Status
 ClassMethod info(messageRequest As dc.journalindexer.rest.requests.info) As %Status
 {
 	Quit { "zv": ($zv), "title": "Journal Indexer", "version": "0.5.0" }
+}
+
+ClassMethod IsValidGlobal(messageRequest As dc.journalindexer.rest.requests.IsValidGlobal) As %Status
+{
+	Set exists = $$$NO
+	Set isValidName = $$$YES
+	Try {
+		Set exists = ''$Data(@messageRequest.globalName)
+	} Catch (ex) {
+		Set isValidName = $$$NO
+	}
+	
+	Set %response.ContentType = "application/json"
+
+	Quit { 
+		"IsValidName" : (isValidName),
+		"Exists": (exists),
+		"Message": ""
+	}
 }
 
 }
