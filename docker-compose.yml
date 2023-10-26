@@ -1,26 +1,35 @@
 version: '3.6'
 services:
   iris:
+    networks:
+      indexer_net:
     build:
       context: .
       dockerfile: Dockerfile
-      #target: final
-    #restart: always
+    
     command: --check-caps false --ISCAgent false
+    container_name: journal-indexer-iris
     ports:
       - 1972
-      - 49187:52773
+      #- 49187:52773
+      #- 52773:52773
       - 53773
     volumes:
-      - ./iris-app/:/home/irisowner/dev
+      - ./:/home/irisowner/dev
 
-  # angular:
-  #   init: true
-  #   container_name: jrnindexer-ui
-  #   build:
-  #     context: .
-  #     dockerfile: journal-indexer-ui/Dockerfile
-  #   ports:
-  #     - 14200:4200
-  #   depends_on:
-  #     - iris
+  angular:
+    networks:
+      indexer_net:
+    build:
+      context: front-end
+      dockerfile: Dockerfile
+    container_name: journal-indexer-ui
+    volumes:
+      - ./front-end/journal-indexer-ui.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - 8090:80
+    depends_on:
+      - iris
+
+networks:
+  indexer_net:

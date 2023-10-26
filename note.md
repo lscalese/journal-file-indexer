@@ -77,6 +77,20 @@ test restore :
 {"DatabaseName":{"Value":"c:\\cache_db\\irishealth\\2203\\v2203caredata\\"},"GlobalName":{"Value":"^Di.RoomD"},"SubscriptsSize":{"Start":"1","End":"9","Operator":"between"}}
 
 
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+        try_files $uri $uri/ /index.html =404;
+    }
+
+    location /jrnindexer/api {
+        proxy_pass http://iris:52773/jrnindexer/api;
+    }
+
+nginx -s reload -c /conf/nginx/nginx.conf
+
+
 d ##class(dc.observer.BasicEventListener).StartListen("IndexerEvent")
 
 d ##class(dc.observer.Manager).Notify("IndexerEvent",{"Hello":"it's me"})
