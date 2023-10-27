@@ -10,9 +10,17 @@
 
 ## Description
 
-The log file search functionality integrated into the management portal is currently experiencing response time problems on large files. The objective is to temporarily index the data in a log file in a database in order to improve search performance.
+The log file search functionality integrated into the management portal is currently experiencing response time problems on large files. The objective is to temporarily index the data in a log file in a database in order to improve search performance.  
+
 
 ## Release note
+
+**Versions 0.7.0***
+
+Front-end :
+
+ * Add a form to restore old value or new value of a global in indexed journal.  
+ * UI improvements.  
 
 **Version 0.6.0**
 
@@ -99,6 +107,7 @@ cd journal-file-indexer
 docker-compose up -d
 ```
 
+*Note* : the front-end is an Angular application (repository [link](https://github.com/lscalese/journal-indexer-ui)).  It can't be deployed by zpm.  If you use `docker-compose up -d`  a container with the front-end application will be started.
 
 ## Run Unit Tests
   
@@ -108,7 +117,52 @@ zpm "test journal-indexer"
 
 ## Front End
 
-Front end Angular starts with docker. use this url [http://localhost:14200/login](http://localhost:14200/login)  
+Front end Angular starts with docker. use this url [http://localhost:8090/login](http://localhost:8090/login)
+
+![login](https://github.com/lscalese/journal-file-indexer/blob/master/img/login.png?raw=true)
+
+
+## Index a journal file
+
+There 2 ways to index a journal file.  
+If the journal is on the IRIS server use `New` and fill the path of the journal file.
+You have to give also a "user defined name".  It's just a name to recognize easily this indexed journal.  
+
+![new](https://github.com/lscalese/journal-file-indexer/blob/master/img/new.png?raw=true)
+
+Or, if the journal file is not on the server, you can upload by a simple drag and drop using `Upload` menu.
+
+![upload](https://github.com/lscalese/journal-file-indexer/blob/master/img/upload.png?raw=true)
+
+Then a page with the indexing progress will be opened.  The indexing take a while depending the size of the journal file.
+
+![load](https://github.com/lscalese/journal-file-indexer/blob/master/img/load.png?raw=true)
+
+## List indexed journal file
+
+Use the menu `List` to show the list of indexed journal.  From this page, you can delete a item
+
+![list](https://github.com/lscalese/journal-file-indexer/blob/master/img/list.png?raw=true)
+
+Use the button the `stats` to show statistics about this indexed journal. You can see stats by global, database or process id : 
+
+![stats](https://github.com/lscalese/journal-file-indexer/blob/master/img/stats.png?raw=true)
+
+## Search data
+
+An advanced form filter is available form the `search` menu to search data in the indexed journal file : 
+
+![search](https://github.com/lscalese/journal-file-indexer/blob/master/img/search.png?raw=true)
+
+To have a good response time, it's better to select global name if you want to filter on : old value, new value or global subscript.
+
+![table](https://github.com/lscalese/journal-file-indexer/blob/master/img/search.png?raw=true)
+
+If your filter contain a global name, the button `restore` will be available.  It allows to restore the new or value of a global to a new location.  
+To protect your data against restore mistake this tool allows only restore to a non existing global.  
+
+![restore](https://github.com/lscalese/journal-file-indexer/blob/master/img/restore.png?raw=true)
+
 
 ## Usage with command line tools
 
