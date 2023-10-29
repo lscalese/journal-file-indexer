@@ -245,6 +245,8 @@ ClassMethod Index(
         Set sc = ##class(dc.journalindexer.dao.JournalDataDAO).SetFile(journal, Name, .FileId) Quit:$$$ISERR(sc)
 
         Set jrnRecord = journal.FirstRecord, lastAddress = journal.LastRecord.Address
+        
+        Set progression.FileId = FileId
 
         Do EventSignal
 
