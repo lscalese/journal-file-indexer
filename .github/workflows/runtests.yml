@@ -21,7 +21,7 @@ jobs:
       - name: Build and Test
         uses: docker/build-push-action@v2
         with:
-          context: ./iris-app/
+          context: .
           push: false
           load: true
           tags: ${{ github.repository }}:${{ github.sha }}

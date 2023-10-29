@@ -13,9 +13,12 @@
       <Resource Name="JRNINDEXERFW.MAC" Directory="mac/"/>
       <Resource Name="journalindexer.INC" Directory="inc/"/>
       <Resource Name="eventobserver.INC" Directory="inc/"/>
+      <FileCopy Name="sql-stats.xml.renamed" Target="${libdir}journal-indexer/"/>
       <Invoke Class="dc.journalindexer.services.Config" Method="Initialize"></Invoke>
       <Invoke Class="dc.journalindexer.services.Config" Method="InitWebApps"></Invoke>
-      
+      <Invoke Class="%SYSTEM.SQL.Stats.Table" Method="Import">
+        <Arg>${libdir}journal-indexer/sql-stats.xml.renamed</Arg>
+      </Invoke>
       <CSPApplication 
         Url="/jrnindexer/api"
         Recurse="1"

@@ -19,6 +19,7 @@ The log file search functionality integrated into the management portal is curre
 
 Front-end :
 
+ * Add form to search data in indexed journal.
  * Add a form to restore old value or new value of a global in indexed journal.  
  * UI improvements.  
 
