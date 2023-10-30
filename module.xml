@@ -14,6 +14,9 @@
       <Resource Name="journalindexer.INC" Directory="inc/"/>
       <Resource Name="eventobserver.INC" Directory="inc/"/>
       <FileCopy Name="sql-stats.xml.renamed" Target="${libdir}journal-indexer/"/>
+      <Invoke Class="%File" Method="CreateDirectory" Phase="Compile" When="Before" CheckStatus="true">
+        <Arg>${libdir}journal-indexer</Arg>
+      </Invoke>
       <Invoke Class="dc.journalindexer.services.Config" Method="Initialize"></Invoke>
       <Invoke Class="dc.journalindexer.services.Config" Method="InitWebApps"></Invoke>
       <Invoke Class="%SYSTEM.SQL.Stats.Table" Method="Import">
