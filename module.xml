@@ -3,7 +3,7 @@
   <Document name="journal-indexer.ZPM">
     <Module>
       <Name>journal-indexer</Name>
-      <Version>0.7.0</Version>
+      <Version>0.7.1</Version>
       <Description></Description>
       <Packaging>module</Packaging>
       <SourcesRoot>src</SourcesRoot>
