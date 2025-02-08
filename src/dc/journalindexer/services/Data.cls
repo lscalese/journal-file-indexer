@@ -72,7 +72,7 @@ ClassMethod RestoreGlobal(
 
         If IsRestoreNewValue Do restoreNewValue Continue
         
-        Do restoreNewValue
+        Do restoreOldValue
     }
 
     If errors Set msg($Increment(msg)) = $Replace(errMsg, "%1", errors)
